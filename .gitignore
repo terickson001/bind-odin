@@ -16,3 +16,5 @@
 !include/**
 
 !example.bind
+
+!README.md
