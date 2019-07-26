@@ -7,6 +7,7 @@
 #include "tokenizer.h"
 #include "parse_common.h"
 #include "config.h"
+#include "hashmap.h"
 
 typedef struct Cond_Stack
 {
@@ -76,6 +77,7 @@ typedef struct Preprocessor
     b32 stringify_next;
     b32 paste_next;
     
+    map_t pragma_onces;
     // String whitelist;
 } Preprocessor;
 

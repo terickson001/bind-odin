@@ -122,6 +122,8 @@ Preprocessor *make_preprocessor(gbArray(Token) tokens, String root_dir, String f
 
     init_std_defines(&pp->defines);
 
+    pp->pragma_onces = hashmap_new(alloc);
+
     gbArray(String) include_files;
     if (conf->pre_includes && hashmap_get(conf->pre_includes, string_slice(filename, root_dir.len+1, -1), (void **)&include_files) == MAP_OK)
     {
@@ -129,7 +131,7 @@ Preprocessor *make_preprocessor(gbArray(Token) tokens, String root_dir, String f
         for (int i = 0; i < gb_array_count(include_files); i++)
         {
             gbFileContents fc = {0};
-            gb_snprintf(path, 512, "%.*s/%.*s", LIT(root_dir), LIT(include_files[i]));
+            gb_snprintf(path, 512, "%.*s%c%.*s", LIT(root_dir), GB_PATH_SEPARATOR, LIT(include_files[i]));
             fc = gb_file_read_contents(pp->allocator, true, path);
             if (!fc.data)
                 gb_printf_err("%.*s: \e[31mERROR:\e[0m Could not pre-include file '%s'\n",
@@ -835,21 +837,21 @@ void _directive_include(Preprocessor *pp, b32 next)
     gbFileContents fc = {0};
     if (local_first && !next)
     {
-        gb_snprintf(path, 512, "%.*s%c%.*s", LIT(root_dir), root_dir.len?'/':0, LIT(filename));
+        gb_snprintf(path, 512, "%.*s%c%.*s", LIT(root_dir), root_dir.len?GB_PATH_SEPARATOR:0, LIT(filename));
         fc = gb_file_read_contents(pp->allocator, true, path);
     }
     if (pp->conf->include_dirs)
     {
         for (int i = 0; i < gb_array_count(pp->conf->include_dirs) && !fc.data; i++)
         {
-            gb_snprintf(path, 512, "%.*s/%.*s", LIT(pp->conf->include_dirs[i]), LIT(filename));
+            gb_snprintf(path, 512, "%.*s%c%.*s", LIT(pp->conf->include_dirs[i]), GB_PATH_SEPARATOR, LIT(filename));
             if (!next || !has_prefix(make_string(path), root_dir))
                 fc = gb_file_read_contents(pp->allocator, true, path);
         }
     }
     for (int i = 0; i < gb_array_count(pp->system_includes) && !fc.data; i++)
     {
-        gb_snprintf(path, 512, "%.*s/%.*s", LIT(pp->system_includes[i]), LIT(filename));
+        gb_snprintf(path, 512, "%.*s%c%.*s", LIT(pp->system_includes[i]), GB_PATH_SEPARATOR, LIT(filename));
         if (!next || !has_prefix(make_string(path), root_dir))
             fc = gb_file_read_contents(pp->allocator, true, path);
     }
@@ -866,6 +868,8 @@ void _directive_include(Preprocessor *pp, b32 next)
 
     if (fc.data)
     {
+        if (hashmap_exists(pp->pragma_onces, context.filename))
+            return;
         Tokenizer tokenizer = make_tokenizer(fc, make_string(context.filename.start));
         gb_array_init(tokens, pp->allocator);
         Token token;
@@ -875,7 +879,7 @@ void _directive_include(Preprocessor *pp, b32 next)
     else
     {
         Token tok = {.loc={.file=pp->context->filename, .line=from_line}};
-        error(tok, "Could not \e[35m#include\e[0m file '%.*s'", LIT(filename));
+        error(tok, "Could not \e[35m#include\e[0m file '%.*s'(%s)", LIT(filename), path);
         gb_exit(1);
     }
     
@@ -969,10 +973,13 @@ void directive_pragma(Preprocessor *pp)
 {
     Token_Run pragma = pp_get_line(pp);
     
-    gb_printf("(%.*s:%ld): \e[32mNOTE:\e[0m '#pragma %.*s' skipped\n",
-              LIT(pp->context->filename),
-              pp->line,
-              LIT(token_run_string(pragma)));
+    if (cstring_cmp(pragma.start->str, "once") == 0)
+        hashmap_put(pp->pragma_onces, pp->context->filename, 0);
+    else
+        gb_printf("(%.*s:%ld): \e[32mNOTE:\e[0m '#pragma %.*s' skipped\n",
+                  LIT(pp->context->filename),
+                  pp->line,
+                  LIT(token_run_string(pragma)));
 }
 
 void run_pp(Preprocessor *pp)

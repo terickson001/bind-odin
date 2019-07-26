@@ -15,6 +15,7 @@ project "bind_find_vs"
     language "C++"
     location "build"
     
+    targetdir "."
     targetname "find_vs"
 
     defines { "BUILD_DLL" }

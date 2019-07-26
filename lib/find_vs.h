@@ -464,7 +464,7 @@ void find_visual_studio_by_fighting_through_microsoft_craziness(Find_Result *res
         auto version_tail = wcschr(version, '\n');
         if (version_tail)  *version_tail = 0;  // Stomp the data, because nobody cares about it.
 
-        auto include_path = concat(bstr_inst_path, L"\\VC\\Tools\\MSVC\\", version, L"\\include\\");
+        auto include_path = concat(bstr_inst_path, L"\\VC\\Tools\\MSVC\\", version, L"\\include");
         // auto library_file = concat(library_path, L"\\vcruntime.lib");  // @Speed: Could have library_path point to this string, with a smaller count, to save on memory flailing!
 
         if (os_dir_exists(include_path)) {
@@ -538,8 +538,8 @@ extern "C" Find_Result find_visual_studio_and_windows_sdk() {
     find_windows_kit_root(&result);
 
     if (result.windows_sdk_root) {
-        result.windows_sdk_um_include_path   = concat(result.windows_sdk_root, L"\\um\\x64");
-        result.windows_sdk_ucrt_include_path = concat(result.windows_sdk_root, L"\\ucrt\\x64");
+        result.windows_sdk_um_include_path   = concat(result.windows_sdk_root, L"\\um");
+        result.windows_sdk_ucrt_include_path = concat(result.windows_sdk_root, L"\\ucrt");
     }
 
     find_visual_studio_by_fighting_through_microsoft_craziness(&result);
