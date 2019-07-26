@@ -59,21 +59,21 @@ struct Find_Result {
     int windows_sdk_version;   // Zero if no Windows SDK found.
 
     wchar_t *windows_sdk_root;
-    wchar_t *windows_sdk_um_library_path;
-    wchar_t *windows_sdk_ucrt_library_path;
+    wchar_t *windows_sdk_um_include_path;
+    wchar_t *windows_sdk_ucrt_include_path;
     
     wchar_t *vs_exe_path;
-    wchar_t *vs_library_path;
+    wchar_t *vs_include_path;
 };
 
 extern "C" EXPORT Find_Result find_visual_studio_and_windows_sdk();
 
 void free_resources(Find_Result *result) {
     free(result->windows_sdk_root);
-    free(result->windows_sdk_um_library_path);
-    free(result->windows_sdk_ucrt_library_path);
+    free(result->windows_sdk_um_include_path);
+    free(result->windows_sdk_ucrt_include_path);
     free(result->vs_exe_path);
-    free(result->vs_library_path);
+    free(result->vs_include_path);
 }
 
 //
@@ -183,6 +183,15 @@ struct Version_Data {
     int32_t best_version[4];  // For Windows 8 versions, only two of these numbers are used.
     wchar_t *best_name;
 };
+
+bool os_dir_exists(wchar_t *name)
+{
+    auto attrib = GetFileAttributesW(name);
+    if (attrib == INVALID_FILE_ATTRIBUTES) return false;
+    if (attrib & FILE_ATTRIBUTE_DIRECTORY) return true;
+
+    return false;
+}
 
 bool os_file_exists(wchar_t *name) {
     // @Robustness: What flags do we really want to check here?
@@ -351,10 +360,10 @@ void find_windows_kit_root(Find_Result *result) {
     if (windows10_root) {
         defer { free(windows10_root); };
         Version_Data data = {0};
-        auto windows10_lib = concat(windows10_root, L"Lib");
-        defer { free(windows10_lib); };
+        auto windows10_include = concat(windows10_root, L"Include");
+        defer { free(windows10_include); };
         
-        visit_files_w(windows10_lib, &data, win10_best);
+        visit_files_w(windows10_include, &data, win10_best);
         if (data.best_name) {
             result->windows_sdk_version = 10;
             result->windows_sdk_root = data.best_name;
@@ -368,11 +377,11 @@ void find_windows_kit_root(Find_Result *result) {
     if (windows8_root) {
         defer { free(windows8_root); };
         
-        auto windows8_lib = concat(windows8_root, L"Lib");
-        defer { free(windows8_lib); };
+        auto windows8_include = concat(windows8_root, L"Include");
+        defer { free(windows8_include); };
 
         Version_Data data = {0};
-        visit_files_w(windows8_lib, &data, win8_best);
+        visit_files_w(windows8_include, &data, win8_best);
         if (data.best_name) {
             result->windows_sdk_version = 8;
             result->windows_sdk_root = data.best_name;
@@ -455,13 +464,13 @@ void find_visual_studio_by_fighting_through_microsoft_craziness(Find_Result *res
         auto version_tail = wcschr(version, '\n');
         if (version_tail)  *version_tail = 0;  // Stomp the data, because nobody cares about it.
 
-        auto library_path = concat(bstr_inst_path, L"\\VC\\Tools\\MSVC\\", version, L"\\lib\\x64");
-        auto library_file = concat(library_path, L"\\vcruntime.lib");  // @Speed: Could have library_path point to this string, with a smaller count, to save on memory flailing!
+        auto include_path = concat(bstr_inst_path, L"\\VC\\Tools\\MSVC\\", version, L"\\include\\");
+        // auto library_file = concat(library_path, L"\\vcruntime.lib");  // @Speed: Could have library_path point to this string, with a smaller count, to save on memory flailing!
 
-        if (os_file_exists(library_file)) {
+        if (os_dir_exists(include_path)) {
             auto link_exe_path = concat(bstr_inst_path, L"\\VC\\Tools\\MSVC\\", version, L"\\bin\\Hostx64\\x64");
             result->vs_exe_path     = link_exe_path;
-            result->vs_library_path = library_path;
+            result->vs_include_path = include_path;
             return;
         }
 
@@ -506,19 +515,17 @@ void find_visual_studio_by_fighting_through_microsoft_craziness(Find_Result *res
 
         // @Robustness: Do the zero-termination thing suggested in the RegQueryValue docs?
         
-        auto lib_path = concat(buffer, L"VC\\Lib\\amd64");
+        auto include_path = concat(buffer, L"VC\\Include\\amd64");
 
         // Check to see whether a vcruntime.lib actually exists here.
-        auto vcruntime_filename = concat(lib_path, L"\\vcruntime.lib");
-        defer { free(vcruntime_filename); };
 
-        if (os_file_exists(vcruntime_filename)) {
-            result->vs_exe_path     = concat(buffer, L"VC\\bin");
-            result->vs_library_path = lib_path;
+        if (os_dir_exists(include_path)) {
+            result->vs_exe_path    = concat(buffer, L"VC\\bin");
+            result->vs_include_path = include_path;
             return;
         }
         
-        free(lib_path);
+        free(include_path);
     }
 
     // If we get here, we failed to find anything.
@@ -531,8 +538,8 @@ extern "C" Find_Result find_visual_studio_and_windows_sdk() {
     find_windows_kit_root(&result);
 
     if (result.windows_sdk_root) {
-        result.windows_sdk_um_library_path   = concat(result.windows_sdk_root, L"\\um\\x64");
-        result.windows_sdk_ucrt_library_path = concat(result.windows_sdk_root, L"\\ucrt\\x64");
+        result.windows_sdk_um_include_path   = concat(result.windows_sdk_root, L"\\um\\x64");
+        result.windows_sdk_ucrt_include_path = concat(result.windows_sdk_root, L"\\ucrt\\x64");
     }
 
     find_visual_studio_by_fighting_through_microsoft_craziness(&result);
