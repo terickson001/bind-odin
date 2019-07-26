@@ -192,12 +192,12 @@ void destroy_preprocessor(Preprocessor *pp)
 }
 
 
-void pp_parse_macro_args(Preprocessor *pp, gbArray(Token_Run) args, b32 is_params)
+void pp_parse_macro_args(Preprocessor *pp, gbArray(Token_Run) *args, b32 is_params)
 {
     b32 free_args = false;
-    if (!args)
+    if (!*args)
     {
-        gb_array_init(args, pp->allocator);
+        gb_array_init(*args, pp->allocator);
         free_args = true;
     }
     
@@ -230,14 +230,14 @@ void pp_parse_macro_args(Preprocessor *pp, gbArray(Token_Run) args, b32 is_param
               && curr.end[1].kind == Token_CloseParen
               && curr.end < curr.start
               && is_params))
-            gb_array_append(args, curr);
+            gb_array_append(*args, curr);
         if (peek(pp).kind == Token_CloseParen)
             break;
         pp_advance(pp);
     }
     expect_token(&pp->context->tokens, Token_CloseParen);
-    if (free_args)
-        gb_array_free(args);
+    // if (free_args)
+    //     gb_array_free(*args);
 }
 
 gbArray(Token) run_pp_sandboxed(Preprocessor *pp, Token_Run *run);
@@ -480,7 +480,7 @@ void pp_do_macro(Preprocessor *pp, Define define, Token name, Token *preceding_t
         }
         else
         {
-            pp_parse_macro_args(pp, args, false);
+            pp_parse_macro_args(pp, &args, false);
             if (gb_array_count(args) == 1
                 && gb_array_count(define.params) == 0
                 && args[0].end < args[0].start)
@@ -739,7 +739,7 @@ void directive_define(Preprocessor *pp)
         peek(pp).loc.column == def_token.loc.column + def_token.str.len)
     {
         gb_array_init(params, pp->allocator);
-        pp_parse_macro_args(pp, params, true);
+        pp_parse_macro_args(pp, &params, true);
     }
     isize def_line = def_token.loc.line;
     Token_Run value = {0};
@@ -975,11 +975,11 @@ void directive_pragma(Preprocessor *pp)
     
     if (cstring_cmp(pragma.start->str, "once") == 0)
         hashmap_put(pp->pragma_onces, pp->context->filename, 0);
-    else
-        gb_printf("(%.*s:%ld): \e[32mNOTE:\e[0m '#pragma %.*s' skipped\n",
-                  LIT(pp->context->filename),
-                  pp->line,
-                  LIT(token_run_string(pragma)));
+    // else
+    //     gb_printf("(%.*s:%ld): \e[32mNOTE:\e[0m '#pragma %.*s' skipped\n",
+    //               LIT(pp->context->filename),
+    //               pp->line,
+    //               LIT(token_run_string(pragma)));
 }
 
 void run_pp(Preprocessor *pp)
@@ -1080,7 +1080,10 @@ void run_pp(Preprocessor *pp)
                 {
                     if (define.params)
                     {
-                        pp_parse_macro_args(pp, 0, false);
+                        gbArray(Token_Run) args_temp;
+                        gb_array_init(args_temp, pp->allocator);
+                        pp_parse_macro_args(pp, &args_temp, false);
+                        gb_array_free(args_temp);
                     }
                     else if (pp->paste_next
                         && cstring_cmp(define.key, "__VA_ARGS__") == 0
