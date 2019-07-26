@@ -55,24 +55,24 @@
 // Here is the API you need to know about:
 //
 
-struct Find_Result {
+typedef struct Find_Result {
     int windows_sdk_version;   // Zero if no Windows SDK found.
 
     wchar_t *windows_sdk_root;
+    wchar_t *windows_sdk_shared_include_path;
     wchar_t *windows_sdk_um_include_path;
     wchar_t *windows_sdk_ucrt_include_path;
     
-    wchar_t *vs_exe_path;
     wchar_t *vs_include_path;
-};
+} Find_Result;
 
 extern "C" EXPORT Find_Result find_visual_studio_and_windows_sdk();
 
 void free_resources(Find_Result *result) {
     free(result->windows_sdk_root);
+    free(result->windows_sdk_shared_include_path);
     free(result->windows_sdk_um_include_path);
     free(result->windows_sdk_ucrt_include_path);
-    free(result->vs_exe_path);
     free(result->vs_include_path);
 }
 
@@ -468,8 +468,6 @@ void find_visual_studio_by_fighting_through_microsoft_craziness(Find_Result *res
         // auto library_file = concat(library_path, L"\\vcruntime.lib");  // @Speed: Could have library_path point to this string, with a smaller count, to save on memory flailing!
 
         if (os_dir_exists(include_path)) {
-            auto link_exe_path = concat(bstr_inst_path, L"\\VC\\Tools\\MSVC\\", version, L"\\bin\\Hostx64\\x64");
-            result->vs_exe_path     = link_exe_path;
             result->vs_include_path = include_path;
             return;
         }
@@ -520,7 +518,6 @@ void find_visual_studio_by_fighting_through_microsoft_craziness(Find_Result *res
         // Check to see whether a vcruntime.lib actually exists here.
 
         if (os_dir_exists(include_path)) {
-            result->vs_exe_path    = concat(buffer, L"VC\\bin");
             result->vs_include_path = include_path;
             return;
         }
@@ -538,8 +535,9 @@ extern "C" Find_Result find_visual_studio_and_windows_sdk() {
     find_windows_kit_root(&result);
 
     if (result.windows_sdk_root) {
-        result.windows_sdk_um_include_path   = concat(result.windows_sdk_root, L"\\um");
-        result.windows_sdk_ucrt_include_path = concat(result.windows_sdk_root, L"\\ucrt");
+        result.windows_sdk_shared_include_path = concat(result.windows_sdk_root, L"\\shared");
+        result.windows_sdk_um_include_path     = concat(result.windows_sdk_root, L"\\um");
+        result.windows_sdk_ucrt_include_path   = concat(result.windows_sdk_root, L"\\ucrt");
     }
 
     find_visual_studio_by_fighting_through_microsoft_craziness(&result);

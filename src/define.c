@@ -81,9 +81,21 @@ void init_std_defines(Define_Map **defines)
 #elif defined(_WIN64)
     add_define(defines, make_string("_WIN64"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
+#if defined(_MSC_VER)
+    add_define(defines, make_string("_MSC_VER"), make_token_run(STRING(_MSC_VER), Token_Integer), 0, 0, global);
+#endif
 
+/*
+ *  AMD64
+ */
 #if defined(__x86_64__)
     add_define(defines, make_string("__x86_64__"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(__x86_64)
+    add_define(defines, make_string("__x86_64"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(_AMD64_)
+    add_define(defines, make_string("_AMD64_"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
 #if defined(__amd64__)
     add_define(defines, make_string("__amd64__"), make_token_run("1", Token_Integer), 0, 0, global);
@@ -91,15 +103,133 @@ void init_std_defines(Define_Map **defines)
 #if defined(amd64)
     add_define(defines, make_string("amd64"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
+#if defined(__amd64)
+    add_define(defines, make_string("__amd64"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
 #if defined(_M_X64)
     add_define(defines, make_string("_M_X64"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-#if defined(_M_IX86)
-    add_define(defines, make_string("_M_IX86"), make_token_run("1", Token_Integer), 0, 0, global);
+#if defined(_M_AMD64)
+    add_define(defines, make_string("_M_AMD64"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+
+/*
+ *  ARM
+ */
+#if defined(__arm__)
+    add_define(defines, make_string("__arm__"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(__arm)
+    add_define(defines, make_string("__arm"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(__thumb__)
+    add_define(defines, make_string("__thumb__"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(__TARGET_ARCH_ARM)
+    add_define(defines, make_string("__TARGET_ARCH_ARM"), make_token_run(STRING(__TARGET_ARCH_ARM), Token_Integer), 0, 0, global);
+#endif
+#if defined(__TARGET_ARCH_THUMB)
+    add_define(defines, make_string("__TARGET_ARCH_THUMB"), make_token_run(STRING(__TARGET_ARCH_THUMB), Token_Integer), 0, 0, global);
+#endif
+#if defined(_ARM)
+    add_define(defines, make_string("_ARM"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(_M_ARM)
+    add_define(defines, make_string("_M_ARM"), make_token_run(STRING(_M_ARM), Token_Integer), 0, 0, global);
+#endif
+#if defined(_M_ARMT)
+    add_define(defines, make_string("_M_ARMT"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(_ARM_)
+    add_define(defines, make_string("_ARM_"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+// ARM64
+#if defined(_ARM64_)
+    add_define(defines, make_string("_ARM64_"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(__aarch64__)
+    add_define(defines, make_string("__aarch64__"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(_M_ARM64)
+    add_define(defines, make_string("_X86_"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+
+/*
+ *  Intel x86
+ */
+#if defined(i386)
+    add_define(defines, make_string("i386"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(__i386)
+    add_define(defines, make_string("__i386"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
 #if defined(__i386__)
-    add_define(defines, make_string("__i386_"), make_token_run("1", Token_Integer), 0, 0, global);
+    add_define(defines, make_string("__i386__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
+#if defined(__i486__)
+    add_define(defines, make_string("__i486__"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(__i586__)
+    add_define(defines, make_string("__i586__"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(__i686__)
+    add_define(defines, make_string("__i686__"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(__IA32__)
+    add_define(defines, make_string("__IA32__"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(_M_IX86)
+    add_define(defines, make_string("_M_IX86"), make_token_run(STRING(_M_IX86), Token_Integer), 0, 0, global);
+#endif
+#if defined(__X86__)
+    add_define(defines, make_string("__X86__"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(_X86_)
+    add_define(defines, make_string("_X86_"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(__THW_INTEL__)
+    add_define(defines, make_string("__THW_INTEL__"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(__I86__)
+    add_define(defines, make_string("__I86__"), make_token_run(STRING(__I86__), Token_Integer), 0, 0, global);
+#endif
+#if defined(__INTEL__)
+    add_define(defines, make_string("__INTEL__"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(__386)
+    add_define(defines, make_string("__386"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+
+
+/*
+ *  Intel Itanium (IA-64)
+ */
+#if defined(__ia64__)
+    add_define(defines, make_string("__ia64__"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(_IA64)
+    add_define(defines, make_string("_IA64"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(__IA64__)
+    add_define(defines, make_string("__IA64__"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(_IA64_)
+    add_define(defines, make_string("_IA64_"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(__ia64)
+    add_define(defines, make_string("__ia64"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+#if defined(_M_IA64)
+    add_define(defines, make_string("_M_IA64"), make_token_run(STRING(_M_IA64), Token_Integer), 0, 0, global);
+#endif
+#if defined(__itanium__)
+    add_define(defines, make_string("__itanium__"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+
+/*
+ *  MISC
+ */
+
 #if defined(__64BIT__)
     add_define(defines, make_string("__64BIT__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
@@ -115,9 +245,7 @@ void init_std_defines(Define_Map **defines)
 #if defined(__ppc64__)
     add_define(defines, make_string("__ppc64__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-#if defined(__arm__)
-    add_define(defines, make_string("__arm__"), make_token_run("1", Token_Integer), 0, 0, global);
-#endif
+
 #if defined(__MIPSEL__)
     add_define(defines, make_string("__MIPSEL__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
