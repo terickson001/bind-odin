@@ -12,6 +12,11 @@
 // See the comments for how to use this library just below the includes.
 //
 
+#ifdef BUILD_DLL
+#define EXPORT __declspec(dllexport)
+#else
+#define EXPORT __declspec(dllimport)
+#endif
 
 #include <windows.h>
 #include <stdlib.h>
@@ -53,15 +58,15 @@
 struct Find_Result {
     int windows_sdk_version;   // Zero if no Windows SDK found.
 
-    wchar_t *windows_sdk_root              = NULL;
-    wchar_t *windows_sdk_um_library_path   = NULL;
-    wchar_t *windows_sdk_ucrt_library_path = NULL;
+    wchar_t *windows_sdk_root;
+    wchar_t *windows_sdk_um_library_path;
+    wchar_t *windows_sdk_ucrt_library_path;
     
-    wchar_t *vs_exe_path = NULL;
-    wchar_t *vs_library_path = NULL;
+    wchar_t *vs_exe_path;
+    wchar_t *vs_library_path;
 };
 
-Find_Result find_visual_studio_and_windows_sdk();
+extern "C" EXPORT Find_Result find_visual_studio_and_windows_sdk();
 
 void free_resources(Find_Result *result) {
     free(result->windows_sdk_root);
@@ -520,8 +525,8 @@ void find_visual_studio_by_fighting_through_microsoft_craziness(Find_Result *res
 }
 
 
-exter "C" Find_Result find_visual_studio_and_windows_sdk() {
-    Find_Result result;
+extern "C" Find_Result find_visual_studio_and_windows_sdk() {
+    Find_Result result = {0};
 
     find_windows_kit_root(&result);
 

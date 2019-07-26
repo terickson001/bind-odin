@@ -12,6 +12,6 @@ typedef struct Find_Result {
     wchar_t *vs_library_path;
 } Find_Result;
 
-extern Find_Result find_visual_studio_and_windwos_sdk();
+extern Find_Result find_visual_studio_and_windows_sdk();
 
 #endif

@@ -3,7 +3,7 @@
 #include "error.h"
 
 #ifdef GB_SYSTEM_WINDOWS
-# include "find_vs.h"
+# include "vs_find.h"
 # include <stdlib.h>
 #endif
 
@@ -453,13 +453,13 @@ gbArray(String) get_system_includes(gbAllocator a)
     gb_array_init(includes, a);
 
     if (res.windows_sdk_root)
-        gb_array_append(include, make_string(gb_alloc_str(a, gb_ucs2_to_utf8_buf(res.windows_sdk_root))));
+        gb_array_append(includes, make_string(gb_alloc_str(a, gb_ucs2_to_utf8_buf(res.windows_sdk_root))));
     if (res.windows_sdk_um_library_path)
-        gb_array_append(include, make_string(gb_alloc_str(a, gb_ucs2_to_utf8_buf(res.windows_sdk_um_library_path))));
+        gb_array_append(includes, make_string(gb_alloc_str(a, gb_ucs2_to_utf8_buf(res.windows_sdk_um_library_path))));
     if (res.windows_sdk_ucrt_library_path)
-        gb_array_append(include, make_string(gb_alloc_str(a, gb_ucs2_to_utf8_buf(res.windows_sdk_ucrt_library_path))));
+        gb_array_append(includes, make_string(gb_alloc_str(a, gb_ucs2_to_utf8_buf(res.windows_sdk_ucrt_library_path))));
     if (res.vs_library_path)
-        gb_array_append(include, make_string(gb_alloc_str(a, gb_ucs2_to_utf8_buf(res.vs_library_path))));
+        gb_array_append(includes, make_string(gb_alloc_str(a, gb_ucs2_to_utf8_buf(res.vs_library_path))));
 
     for (int i = 0; i < gb_array_count(includes); i++)
         gb_printf("FOUND SYSTEM INCLUDE DIRECTORY: %.*s\n", LIT(includes[i]));

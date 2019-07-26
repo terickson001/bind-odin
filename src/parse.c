@@ -626,6 +626,7 @@ Node *parse_operand(Parser *p)
 Node *parse_expr_list(Parser *p)
 {
     gbArray(Node *) expressions;
+    gb_array_init(expressions, p->alloc);
 
     Node *expr;
     do {
@@ -1604,7 +1605,7 @@ Node *parse_function_type(Parser *p, Node *ret_type, NodeKind *base_kind_out)
     {
         arr_count = parse_expression(p);
         arr_close = require(Token_CloseBracket, p);
-        type  = node_array_type(p, type, arr_count, open, close);
+        type  = node_array_type(p, type, arr_count, arr_open, arr_close);
         if (!base_type) base_type = type;
     }
     

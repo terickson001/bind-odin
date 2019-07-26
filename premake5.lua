@@ -3,7 +3,7 @@ workspace "bind"
 
     filter "Configurations:Debug"
         defines "DEBUG"
-        optimize "off"
+        optimize "Off"
         symbols "On"
         
     filter "Configurations:Release"
@@ -16,10 +16,10 @@ project "bind_find_vs"
     location "build"
     
     targetname "find_vs"
-    targetdir "./obj"
-    
+
+    defines { "BUILD_DLL" }
     files "./lib/find_vs.h"
-    links "kernel32.lib"
+    links { "Advapi32.lib", "Ole32.lib", "OleAut32.lib" }
 
 project "bind"
     kind "ConsoleApp"
