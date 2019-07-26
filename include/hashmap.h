@@ -1,4 +1,4 @@
-x/*
+/*
  * Generic hashmap manipulation functions
  *
  * Originally by Elliot C Back - http://elliottback.com/wp/hashmap-implementation-in-c/
