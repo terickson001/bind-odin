@@ -8,15 +8,6 @@
 #include "parse_common.h"
 #include "config.h"
 
-#define INCLUDE_DIR_COUNT 4
-gb_global char const *INCLUDE_DIRS[INCLUDE_DIR_COUNT] =
-{
-    "/usr/include",
-    "/usr/local/include",
-    "/usr/lib/gcc/x86_64-pc-linux-gnu/9.1.0/include",
-    "/usr/lib/gcc/x86_64-pc-linux-gnu/9.1.0/include-fixed"
-};
-    
 typedef struct Cond_Stack
 {
     struct Cond_Stack *next;
@@ -78,7 +69,7 @@ typedef struct Preprocessor
     
     Define_Map *defines;
     
-    // gbArray(String) include_dirs;
+    gbArray(String) system_includes;
 
     gbArray(Token) output;
 

@@ -25,6 +25,7 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
     package.name     = conf->bind_conf.package_name;;
 
     map_t type_table = hashmap_new(a);
+    gbArray(String) system_includes = get_system_includes(a);
     
     for (int t = 0; t < gb_array_count(tasks); t++)
     {
@@ -64,6 +65,7 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
             root_dir = dir_from_path(task.input_filename);
 
         Preprocessor *pp = make_preprocessor(tokens, root_dir, task.input_filename, &conf->pp_conf);
+        pp->system_includes = system_includes;
         run_pp(pp);
 
         gbArray(Define) defines = pp_dump_defines(pp, task.input_filename);

@@ -95,8 +95,6 @@ Preprocessor *make_preprocessor(gbArray(Token) tokens, String root_dir, String f
     gbAllocator alloc = gb_heap_allocator();
     Preprocessor *pp = gb_alloc_item(alloc, Preprocessor);
 
-    get_system_includes(alloc);
-    
     Token_Run tokens_head = {tokens, tokens, tokens + gb_array_count(tokens)};
     PP_Context base_context = {0};
     base_context.filename = filename;
@@ -119,9 +117,6 @@ Preprocessor *make_preprocessor(gbArray(Token) tokens, String root_dir, String f
 
     pp->root_dir = root_dir;
     pp->conf = conf;
-    // pp->include_dirs = includes;
-
-    // pp->whitelist = whitelist;
 
     gb_array_init(pp->output, alloc);
 
@@ -852,9 +847,9 @@ void _directive_include(Preprocessor *pp, b32 next)
                 fc = gb_file_read_contents(pp->allocator, true, path);
         }
     }
-    for (int i = 0; i < INCLUDE_DIR_COUNT && !fc.data; i++)
+    for (int i = 0; i < gb_array_count(pp->system_includes) && !fc.data; i++)
     {
-        gb_snprintf(path, 512, "%s/%.*s", INCLUDE_DIRS[i], LIT(filename));
+        gb_snprintf(path, 512, "%.*s/%.*s", LIT(pp->system_includes[i]), LIT(filename));
         if (!next || !has_prefix(make_string(path), root_dir))
             fc = gb_file_read_contents(pp->allocator, true, path);
     }
