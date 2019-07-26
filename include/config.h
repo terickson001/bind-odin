@@ -3,7 +3,7 @@
 
 #include "gb/gb.h"
 #include "hashmap.h"
-#include "string.h"
+#include "strings.h"
 #include "types.h"
 
 typedef struct PreprocessorConfig

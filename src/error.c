@@ -1,5 +1,6 @@
 #include "error.h"
 
+#define GB_IMPLEMENTATION
 #include "gb/gb.h"
 #include "stdarg.h"
 

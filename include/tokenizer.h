@@ -2,7 +2,7 @@
 #define C_PARSER_TOKENIZER_H_
 
 #include "gb/gb.h"
-#include "string.h"
+#include "strings.h"
 
 #define TOKEN_KINDS                             \
     TOKEN_KIND(Token_Invalid, "Invalid"),       \

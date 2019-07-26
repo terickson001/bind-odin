@@ -1,5 +1,5 @@
-#ifndef _STRING_H_
-#define _STRING_H_
+#ifndef _BIND_STRINGS_H_
+#define _BIND_STRINGS_H_
 
 #include "gb/gb.h"
 

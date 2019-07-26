@@ -1,7 +1,7 @@
 #include "print.h"
 
 #include "types.h"
-#include "string.h"
+#include "strings.h"
 #include "util.h"
 #include "error.h"
 #include "tokenizer.h"

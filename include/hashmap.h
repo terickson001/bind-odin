@@ -1,4 +1,4 @@
-/*
+x/*
  * Generic hashmap manipulation functions
  *
  * Originally by Elliot C Back - http://elliottback.com/wp/hashmap-implementation-in-c/
@@ -10,7 +10,7 @@
 #define __HASHMAP_H__
 
 #include "gb/gb.h"
-#include "string.h"
+#include "strings.h"
 
 #define MAP_MISSING -3  /* No such element */
 #define MAP_FULL -2 	/* Hashmap is full */

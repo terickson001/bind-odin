@@ -2,7 +2,7 @@
 #define C_PARSER_PRINT_H_ 1
 
 #include "ast.h"
-#include "string.h"
+#include "strings.h"
 #include "util.h"
 #include "resolve.h"
 #include "config.h"

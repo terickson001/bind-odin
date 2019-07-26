@@ -5,6 +5,7 @@
 #include "ast.h"
 #include "hashmap.h"
 #include "config.h"
+#include "strings.h"
 
 #include "gb/gb.h"
 

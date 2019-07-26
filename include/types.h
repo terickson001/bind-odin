@@ -2,7 +2,7 @@
 #define _C_BIND_TYPES_H
 
 #include "gb/gb.h"
-#include "string.h"
+#include "strings.h"
 #include "ast.h"
 
 typedef struct Package

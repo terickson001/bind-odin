@@ -1,10 +1,8 @@
-#define GB_NO_WINDOWS_H
-#define GB_NO_PLATFORM
+
+#include <intrin.h>
+
 #define GB_IMPLEMENTATION
 #include "gb/gb.h"
-
-#include <sys/time.h>
-#include <sys/resource.h>
 
 #include "types.h"
 #include "preprocess.h"
@@ -17,6 +15,7 @@
 #include "config.h"
 
 #include "util.h"
+#include "strings.h"
 
 const char *HELP_TEXT = 
     "Usage: bind-odin [options] file...\n"
@@ -174,7 +173,7 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
         else if (gb_strcmp(argv[i], "-h") == 0 || gb_strcmp(argv[i], "--help") == 0)
         {
             gb_printf("%s", HELP_TEXT);
-            exit(EXIT_SUCCESS);
+            gb_exit(0);
         }
         else if (argv[i][0] != '-')
         {
@@ -316,7 +315,7 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
         int base_length = root_dir.len + sub_dir.len + base_name.len;
         if (sub_dir.start) base_length++;
 
-        tasks[i].output_filename.start = gb_alloc(a, base_length+6);
+        tasks[i].output_filename.start = (char *)gb_alloc(a, base_length+6);
         tasks[i].output_filename.len = base_length+6;
         gb_snprintf(tasks[i].output_filename.start, base_length+5,
                     "%.*s%.*s%c%.*s.odin", LIT(root_dir), LIT(sub_dir), sub_dir.start?'-':0, LIT(base_name));

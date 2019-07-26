@@ -1,130 +1,130 @@
-// /* gb.h - v0.32  - Ginger Bill's C Helper Library - public domain
-//                  - no warranty implied; use at your own risk
+/* gb.h - v0.33  - Ginger Bill's C Helper Library - public domain
+                 - no warranty implied; use at your own risk
 
-// 	This is a single header file with a bunch of useful stuff
-// 	to replace the C/C++ standard library
+	This is a single header file with a bunch of useful stuff
+	to replace the C/C++ standard library
 
-// ===========================================================================
-// 	YOU MUST
+===========================================================================
+	YOU MUST
 
-// 		#define GB_IMPLEMENTATION
+		#define GB_IMPLEMENTATION
 
-// 	in EXACTLY _one_ C or C++ file that includes this header, BEFORE the
-// 	include like this:
+	in EXACTLY _one_ C or C++ file that includes this header, BEFORE the
+	include like this:
 
-// 		#define GB_IMPLEMENTATION
-// 		#include "gb.h"
+		#define GB_IMPLEMENTATION
+		#include "gb.h"
 
-// 	All other files should just #include "gb.h" without #define
+	All other files should just #include "gb.h" without #define
 
 
-// 	If you want the platform layer, YOU MUST
+	If you want the platform layer, YOU MUST
 
-// 		#define GB_PLATFORM
+		#define GB_PLATFORM
 
-// 	BEFORE the include like this:
+	BEFORE the include like this:
 
-// 		#define GB_PLATFORM
-// 		#include "gb.h"
+		#define GB_PLATFORM
+		#include "gb.h"
 
-// ===========================================================================
+===========================================================================
 
-// LICENSE
-// 	This software is dual-licensed to the public domain and under the following
-// 	license: you are granted a perpetual, irrevocable license to copy, modify,
-// 	publish, and distribute this file as you see fit.
+LICENSE
+	This software is dual-licensed to the public domain and under the following
+	license: you are granted a perpetual, irrevocable license to copy, modify,
+	publish, and distribute this file as you see fit.
 
-// WARNING
-// 	- This library is _slightly_ experimental and features may not work as expected.
-// 	- This also means that many functions are not documented.
+WARNING
+	- This library is _slightly_ experimental and features may not work as expected.
+	- This also means that many functions are not documented.
 
-// CREDITS
-// 	Written by Ginger Bill
+CREDITS
+	Written by Ginger Bill
 
-// TODOS
-// 	- Remove CRT dependency for people who want that
-// 		- But do I really?
-// 		- Or make it only depend on the really needed stuff?
-// 	- Older compiler support?
-// 		- How old do you wanna go?
-// 		- Only support C90+extension and C99 not pure C89.
-// 	- File handling
-// 		- All files to be UTF-8 (even on windows)
-// 	- Better Virtual Memory handling
-// 	- Generic Heap Allocator (tcmalloc/dlmalloc/?)
-// 	- Fixed Heap Allocator
-// 	- Better UTF support and conversion
-// 	- Free List, best fit rather than first fit
-// 	- More date & time functions
+TODOS
+	- Remove CRT dependency for people who want that
+		- But do I really?
+		- Or make it only depend on the really needed stuff?
+	- Older compiler support?
+		- How old do you wanna go?
+		- Only support C90+extension and C99 not pure C89.
+	- File handling
+		- All files to be UTF-8 (even on windows)
+	- Better Virtual Memory handling
+	- Generic Heap Allocator (tcmalloc/dlmalloc/?)
+	- Fixed Heap Allocator
+	- Better UTF support and conversion
+	- Free List, best fit rather than first fit
+	- More date & time functions
 
-// VERSION HISTORY
-// 	0.32  - Minor fixes
-// 	0.31  - Add gb_file_remove
-// 	0.30  - Changes to gbThread (and gbMutex on Windows)
-// 	0.29  - Add extras for gbString
-// 	0.28  - Handle UCS2 correctly in Win32 part
-// 	0.27  - OSX fixes and Linux gbAffinity
-// 	0.26d - Minor changes to how gbFile works
-// 	0.26c - gb_str_to_f* fix
-// 	0.26b - Minor fixes
-// 	0.26a - gbString Fix
-// 	0.26  - Default allocator flags and generic hash table
-// 	0.25a - Fix UTF-8 stuff
-// 	0.25  - OS X gbPlatform Support (missing some things)
-// 	0.24b - Compile on OSX (excluding platform part)
-// 	0.24a - Minor additions
-// 	0.24  - Enum convention change
-// 	0.23  - Optional Windows.h removal (because I'm crazy)
-// 	0.22a - Remove gbVideoMode from gb_platform_init_*
-// 	0.22  - gbAffinity - (Missing Linux version)
-// 	0.21  - Platform Layer Restructuring
-// 	0.20  - Improve file io
-// 	0.19  - Clipboard Text
-// 	0.18a - Controller vibration
-// 	0.18  - Raw keyboard and mouse input for WIN32
-// 	0.17d - Fixed printf bug for strings
-// 	0.17c - Compile as 32 bit
-// 	0.17b - Change formating style because why not?
-// 	0.17a - Dropped C90 Support (For numerous reasons)
-// 	0.17  - Instantiated Hash Table
-// 	0.16a - Minor code layout changes
-// 	0.16  - New file API and improved platform layer
-// 	0.15d - Linux Experimental Support (DON'T USE IT PLEASE)
-// 	0.15c - Linux Experimental Support (DON'T USE IT)
-// 	0.15b - C90 Support
-// 	0.15a - gb_atomic(32|64)_spin_(lock|unlock)
-// 	0.15  - Recursive "Mutex"; Key States; gbRandom
-// 	0.14  - Better File Handling and better printf (WIN32 Only)
-// 	0.13  - Highly experimental platform layer (WIN32 Only)
-// 	0.12b - Fix minor file bugs
-// 	0.12a - Compile as C++
-// 	0.12  - New File Handing System! No stdio or stdlib! (WIN32 Only)
-// 	0.11a - Add string precision and width (experimental)
-// 	0.11  - Started making stdio & stdlib optional (Not tested much)
-// 	0.10c - Fix gb_endian_swap32()
-// 	0.10b - Probable timing bug for gb_time_now()
-// 	0.10a - Work on multiple compilers
-// 	0.10  - Scratch Memory Allocator
-// 	0.09a - Faster Mutex and the Free List is slightly improved
-// 	0.09  - Basic Virtual Memory System and Dreadful Free List allocator
-// 	0.08a - Fix *_appendv bug
-// 	0.08  - Huge Overhaul!
-// 	0.07a - Fix alignment in gb_heap_allocator_proc
-// 	0.07  - Hash Table and Hashing Functions
-// 	0.06c - Better Documentation
-// 	0.06b - OS X Support
-// 	0.06a - Linux Support
-// 	0.06  - Windows GCC Support and MSVC x86 Support
-// 	0.05b - Formatting
-// 	0.05a - Minor function name changes
-// 	0.05  - Radix Sort for unsigned integers (TODO: Other primitives)
-// 	0.04  - Better UTF support and search/sort procs
-// 	0.03  - Completely change procedure naming convention
-// 	0.02a - Bug fixes
-// 	0.02  - Change naming convention and gbArray(Type)
-// 	0.01  - Initial Version
-// */
-
+VERSION HISTORY
+	0.33  - Minor fixes
+	0.32  - Minor fixes
+	0.31  - Add gb_file_remove
+	0.30  - Changes to gbThread (and gbMutex on Windows)
+	0.29  - Add extras for gbString
+	0.28  - Handle UCS2 correctly in Win32 part
+	0.27  - OSX fixes and Linux gbAffinity
+	0.26d - Minor changes to how gbFile works
+	0.26c - gb_str_to_f* fix
+	0.26b - Minor fixes
+	0.26a - gbString Fix
+	0.26  - Default allocator flags and generic hash table
+	0.25a - Fix UTF-8 stuff
+	0.25  - OS X gbPlatform Support (missing some things)
+	0.24b - Compile on OSX (excluding platform part)
+	0.24a - Minor additions
+	0.24  - Enum convention change
+	0.23  - Optional Windows.h removal (because I'm crazy)
+	0.22a - Remove gbVideoMode from gb_platform_init_*
+	0.22  - gbAffinity - (Missing Linux version)
+	0.21  - Platform Layer Restructuring
+	0.20  - Improve file io
+	0.19  - Clipboard Text
+	0.18a - Controller vibration
+	0.18  - Raw keyboard and mouse input for WIN32
+	0.17d - Fixed printf bug for strings
+	0.17c - Compile as 32 bit
+	0.17b - Change formating style because why not?
+	0.17a - Dropped C90 Support (For numerous reasons)
+	0.17  - Instantiated Hash Table
+	0.16a - Minor code layout changes
+	0.16  - New file API and improved platform layer
+	0.15d - Linux Experimental Support (DON'T USE IT PLEASE)
+	0.15c - Linux Experimental Support (DON'T USE IT)
+	0.15b - C90 Support
+	0.15a - gb_atomic(32|64)_spin_(lock|unlock)
+	0.15  - Recursive "Mutex"; Key States; gbRandom
+	0.14  - Better File Handling and better printf (WIN32 Only)
+	0.13  - Highly experimental platform layer (WIN32 Only)
+	0.12b - Fix minor file bugs
+	0.12a - Compile as C++
+	0.12  - New File Handing System! No stdio or stdlib! (WIN32 Only)
+	0.11a - Add string precision and width (experimental)
+	0.11  - Started making stdio & stdlib optional (Not tested much)
+	0.10c - Fix gb_endian_swap32()
+	0.10b - Probable timing bug for gb_time_now()
+	0.10a - Work on multiple compilers
+	0.10  - Scratch Memory Allocator
+	0.09a - Faster Mutex and the Free List is slightly improved
+	0.09  - Basic Virtual Memory System and Dreadful Free List allocator
+	0.08a - Fix *_appendv bug
+	0.08  - Huge Overhaul!
+	0.07a - Fix alignment in gb_heap_allocator_proc
+	0.07  - Hash Table and Hashing Functions
+	0.06c - Better Documentation
+	0.06b - OS X Support
+	0.06a - Linux Support
+	0.06  - Windows GCC Support and MSVC x86 Support
+	0.05b - Formatting
+	0.05a - Minor function name changes
+	0.05  - Radix Sort for unsigned integers (TODO: Other primitives)
+	0.04  - Better UTF support and search/sort procs
+	0.03  - Completely change procedure naming convention
+	0.02a - Bug fixes
+	0.02  - Change naming convention and gbArray(Type)
+	0.01  - Initial Version
+*/
 
 #ifndef GB_INCLUDE_GB_H
 #define GB_INCLUDE_GB_H
@@ -288,6 +288,7 @@ extern "C" {
 
 
 #if defined(GB_SYSTEM_WINDOWS)
+
 	#if !defined(GB_NO_WINDOWS_H)
 		#define NOMINMAX            1
 		#define WIN32_LEAN_AND_MEAN 1
@@ -303,6 +304,7 @@ extern "C" {
 	#include <malloc.h> // NOTE(bill): _aligned_*()
 	#include <intrin.h>
 #else
+
 	#include <dlfcn.h>
 	#include <errno.h>
 	#include <fcntl.h>
@@ -316,7 +318,6 @@ extern "C" {
 		#include <sys/sendfile.h>
 	#endif
 	#include <sys/stat.h>
-    #include <dirent.h>
 	#include <sys/time.h>
 	#include <sys/types.h>
 	#include <time.h>
@@ -533,12 +534,12 @@ typedef i32 b32; // NOTE(bill): Prefer this!!!
 #if !defined(gb_inline)
 	#if defined(_MSC_VER)
 		#if _MSC_VER < 1300
-		#define gb_inline inline
+		#define gb_inline
 		#else
-		#define gb_inline __forceinline inline
+		#define gb_inline __forceinline
 		#endif
 	#else
-		#define gb_inline __attribute__ ((__always_inline__)) inline
+		#define gb_inline __attribute__ ((__always_inline__))
 	#endif
 #endif
 
@@ -763,7 +764,7 @@ extern "C++" {
 #ifndef GB_ASSERT_MSG
 #define GB_ASSERT_MSG(cond, msg, ...) do { \
 	if (!(cond)) { \
-		gb_assert_handler(#cond, __FILE__, cast(i64)__LINE__, msg, ##__VA_ARGS__); \
+		gb_assert_handler("Assertion Failure", #cond, __FILE__, cast(i64)__LINE__, msg, ##__VA_ARGS__); \
 		GB_DEBUG_TRAP(); \
 	} \
 } while (0)
@@ -779,10 +780,13 @@ extern "C++" {
 
 // NOTE(bill): Things that shouldn't happen with a message!
 #ifndef GB_PANIC
-#define GB_PANIC(msg, ...) GB_ASSERT_MSG(0, msg, ##__VA_ARGS__)
+#define GB_PANIC(msg, ...) do { \
+	gb_assert_handler("Panic", NULL, __FILE__, cast(i64)__LINE__, msg, ##__VA_ARGS__); \
+	GB_DEBUG_TRAP(); \
+} while (0)
 #endif
 
-GB_DEF void gb_assert_handler(char const *condition, char const *file, i32 line, char const *msg, ...);
+GB_DEF void gb_assert_handler(char const *prefix, char const *condition, char const *file, i32 line, char const *msg, ...);
 
 
 
@@ -918,7 +922,7 @@ GB_DEF void gb_lfence      (void);
 typedef struct gbSemaphore { void *win32_handle; }     gbSemaphore;
 #elif defined(GB_SYSTEM_OSX)
 typedef struct gbSemaphore { semaphore_t osx_handle; } gbSemaphore;
-#elif defined(GB_SYSTEM_UNIX)
+<#elif defined(GB_SYSTEM_UNIX)
 typedef struct gbSemaphore { sem_t unix_handle; }      gbSemaphore;
 #else
 #error
@@ -937,6 +941,7 @@ typedef struct gbMutex {
 	CRITICAL_SECTION win32_critical_section;
 #else
 	pthread_mutex_t pthread_mutex;
+	pthread_mutexattr_t pthread_mutexattr;
 #endif
 } gbMutex;
 
@@ -978,7 +983,7 @@ typedef struct gbThread {
 
 	gbSemaphore   semaphore;
 	isize         stack_size;
-	b32           is_running;
+	b32 volatile  is_running;
 } gbThread;
 
 GB_DEF void gb_thread_init            (gbThread *t);
@@ -2057,7 +2062,7 @@ GB_DEF b32        gb_file_copy           (char const *existing_filename, char co
 GB_DEF b32        gb_file_move           (char const *existing_filename, char const *new_filename);
 GB_DEF b32        gb_file_remove         (char const *filename);
 
-  GB_DEF b32        gb_dir_contents        (char const *filename, gbArray(char *) *entries, b32 recurse);
+GB_DEF b32        gb_dir_contents        (char const *filename, gbArray(char *) *entries, b32 recurse);
 GB_DEF b32        gb_dir_create          (char const *name);
 #ifndef GB_PATH_SEPARATOR
 	#if defined(GB_SYSTEM_WINDOWS)
@@ -3614,8 +3619,8 @@ extern "C" {
 #pragma warning(disable:4127) // Conditional expression is constant
 #endif
 
-void gb_assert_handler(char const *condition, char const *file, i32 line, char const *msg, ...) {
-	gb_printf_err("%s(%d): Assert Failure: ", file, line);
+void gb_assert_handler(char const *prefix, char const *condition, char const *file, i32 line, char const *msg, ...) {
+	gb_printf_err("%s(%d): %s: ", file, line, prefix);
 	if (condition)
 		gb_printf_err( "`%s` ", condition);
 	if (msg) {
@@ -4611,7 +4616,9 @@ gb_inline void gb_mutex_init(gbMutex *m) {
 #if defined(GB_SYSTEM_WINDOWS)
 	InitializeCriticalSection(&m->win32_critical_section);
 #else
-	pthread_mutex_init(&m->pthread_mutex, NULL);
+	pthread_mutexattr_init(&m->pthread_mutexattr);
+	pthread_mutexattr_settype(&m->pthread_mutexattr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&m->pthread_mutex, &m->pthread_mutexattr);
 #endif
 }
 
@@ -4698,6 +4705,7 @@ gb_inline void gb_thread_start_with_stack(gbThread *t, gbThreadProc *proc, void 
 	t->proc = proc;
 	t->user_data = user_data;
 	t->stack_size = stack_size;
+	t->is_running = true;
 
 #if defined(GB_SYSTEM_WINDOWS)
 	t->win32_handle = CreateThread(NULL, stack_size, gb__thread_proc, t, 0, NULL);
@@ -4715,7 +4723,6 @@ gb_inline void gb_thread_start_with_stack(gbThread *t, gbThreadProc *proc, void 
 	}
 #endif
 
-	t->is_running = true;
 	gb_semaphore_wait(&t->semaphore);
 }
 
@@ -5021,7 +5028,8 @@ isize gb_affinity_thread_count_for_core(gbAffinity *a, isize core) {
 
 #elif defined(GB_SYSTEM_OSX)
 void gb_affinity_init(gbAffinity *a) {
-	usize count, count_size = gb_size_of(count);
+	usize count = 0;
+	usize count_size = sizeof(count);
 
 	a->is_accurate      = false;
 	a->thread_count     = 1;
@@ -6887,8 +6895,6 @@ gb_global gbUtf8AcceptRange const gb__utf8_accept_ranges[] = {
 
 
 isize gb_utf8_decode(u8 const *str, isize str_len, Rune *codepoint_out) {
-
-
 	isize width = 0;
 	Rune codepoint = GB_RUNE_INVALID;
 
@@ -6897,8 +6903,8 @@ isize gb_utf8_decode(u8 const *str, isize str_len, Rune *codepoint_out) {
 		u8 x = gb__utf8_first[s0], sz;
 		u8 b1, b2, b3;
 		gbUtf8AcceptRange accept;
-		if (x > 0xf0) {
-			Rune mask = (cast(Rune)x >> 31) << 31;
+		if (x >= 0xf0) {
+			Rune mask = (cast(Rune)x << 31) >> 31;
 			codepoint = (cast(Rune)s0 & (~mask)) | (GB_RUNE_INVALID & mask);
 			width = 1;
 			goto end;
@@ -7718,8 +7724,6 @@ gbFileError gb_file_close(gbFile *f) {
 		gb_free(gb_heap_allocator(), cast(char *)f->filename);
 	}
 #else
-    if (f->filename)
-        gb_free(gb_heap_allocator(), cast(char *)f->filename);
 	// TODO HACK(bill): Memory Leak!!!
 #endif
 
@@ -7891,7 +7895,7 @@ b32 gb_dir_contents(const char *name, gbArray(char *) *entries, b32 recurse)
           {
             
             gb_snprintf(path, 2048, "%s\\%s", name, data.cFileName);
-            if (recurse && fdFile.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
+            if (recurse && data.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
               gb_dir_contents(path, entries, recurse);
             else
               gb_array_append(*entries, gb_alloc_str(gb_array_allocator(*entries), path));
@@ -10899,4 +10903,3 @@ GB_COMPARE_PROC(gb_video_mode_dsc_cmp) {
 #endif
 
 #endif // GB_IMPLEMENTATION
-

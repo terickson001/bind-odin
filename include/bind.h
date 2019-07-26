@@ -2,7 +2,7 @@
 #define _C_BIND_H_
 
 #include "gb/gb.h"
-#include "string.h"
+#include "strings.h"
 #include "config.h"
 
 typedef struct Bind_Task

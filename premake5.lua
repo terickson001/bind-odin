@@ -19,6 +19,7 @@ project "bind_find_vs"
     targetdir "./obj"
     
     files "./lib/find_vs.h"
+    links "kernel32.lib"
 
 project "bind"
     kind "ConsoleApp"
@@ -35,7 +36,7 @@ project "bind"
         links { "pthread", "dl" }
         
     filter "system:windows"
-        links { "bind_find_vs" }
+    links { "bind_find_vs", "kernel32.lib" }
 
 newaction {
    trigger = "clean",

@@ -1,4 +1,4 @@
-#include "string.h"
+#include "strings.h"
 
 String make_string_alloc(gbAllocator alloc, char *str)
 {

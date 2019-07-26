@@ -3,7 +3,7 @@
 
 #include "gb/gb.h"
 #include "tokenizer.h"
-#include "string.h"
+#include "strings.h"
 
 typedef struct Define Define;
 typedef struct Node Node;
