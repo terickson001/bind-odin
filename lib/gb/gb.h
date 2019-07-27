@@ -318,6 +318,7 @@ extern "C" {
 		#include <sys/sendfile.h>
 	#endif
 	#include <sys/stat.h>
+    #include <dirent.h>
 	#include <sys/time.h>
 	#include <sys/types.h>
 	#include <time.h>
@@ -922,7 +923,7 @@ GB_DEF void gb_lfence      (void);
 typedef struct gbSemaphore { void *win32_handle; }     gbSemaphore;
 #elif defined(GB_SYSTEM_OSX)
 typedef struct gbSemaphore { semaphore_t osx_handle; } gbSemaphore;
-<#elif defined(GB_SYSTEM_UNIX)
+#elif defined(GB_SYSTEM_UNIX)
 typedef struct gbSemaphore { sem_t unix_handle; }      gbSemaphore;
 #else
 #error

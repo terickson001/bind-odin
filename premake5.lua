@@ -25,19 +25,20 @@ project "bind"
         links { "pthread", "dl" }
         
     filter "system:windows"
-    links { "bind_find_vs", "kernel32.lib" }
+        links { "bind_find_vs", "kernel32.lib" }
 
 project "bind_find_vs"
     kind "StaticLib"
     language "C++"
     location "build"
-    
-    targetdir "./lib"
-    targetname "find_vs"
 
-    defines { "BUILD_DLL" }
-    files "./lib/find_vs.cpp"
-    links { "Advapi32.lib", "Ole32.lib", "OleAut32.lib" }
+    filter "system:windows"
+        targetdir "./lib"
+        targetname "find_vs"
+    
+        defines { "BUILD_DLL" }
+        files "./lib/find_vs.cpp"
+        links { "Advapi32.lib", "Ole32.lib", "OleAut32.lib" }
 
 
 newaction {

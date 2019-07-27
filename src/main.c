@@ -1,6 +1,3 @@
-
-#include <intrin.h>
-
 #define GB_IMPLEMENTATION
 #include "gb/gb.h"
 

@@ -787,7 +787,7 @@ Node *try_type_expr(Parser *p)
     
 
     Token specifier;
-    while (accept_one_of(p, &specifier, {Token_Mul, Token_const, Token_volatile, Token_register, Token_unaligned}))
+    while (accept_one_of(p, &specifier, {Token_Mul, Token_const, Token_volatile, Token_register, Token_unaligned, Token_restrict}))
     {
         if (specifier.kind == Token_unaligned)
             specifier = require(Token_Mul, p);
@@ -1471,10 +1471,11 @@ Node *parse_integer_type(Parser *p)
 
 Node *parse_type(Parser *p)
 {
-    u8 res = allow_unordered(p, {Token_volatile, Token_const, Token_register});
-    b32 is_volatile = res & GB_BIT(0);
-    b32 is_const    = res & GB_BIT(1);
-    b32 is_register = res & GB_BIT(2);
+    u8 res = allow_unordered(p, {Token_volatile, Token_const, Token_register, Token_extension});
+    b32 is_volatile  = res & GB_BIT(0);
+    b32 is_const     = res & GB_BIT(1);
+    b32 is_register  = res & GB_BIT(2);
+    b32 is_extension = res & GB_BIT(3);
 
     Node *type;
     switch (p->curr->kind)
@@ -1513,7 +1514,7 @@ Node *parse_type(Parser *p)
     
 
     Token specifier;
-    while (accept_one_of(p, &specifier, {Token_Mul, Token_const, Token_volatile, Token_register, Token_unaligned}))
+    while (accept_one_of(p, &specifier, {Token_Mul, Token_const, Token_volatile, Token_register, Token_unaligned, Token_restrict}))
     {
         if (specifier.kind == Token_unaligned)
             specifier = require(Token_Mul, p);
@@ -1855,8 +1856,10 @@ Node *parse_decl(Parser *p)
     if (p->curr->kind == Token_declspec)
         parse_decl_spec(p);
 
-    allow(Token_extern, p);
-    allow(Token_static, p);
+    allow_unordered(p, {Token_static, Token_extern, Token_extension});
+    /* allow(Token_static, p); */
+    /* allow(Token_extern, p); */
+    /* allow(Token_static, p); */
     b32 is_inline = accept_one_of(p, 0, {Token_inline, Token__inline, Token__inline_, Token__forceinline});
 
     Node *type, *name;
