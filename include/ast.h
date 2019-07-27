@@ -30,6 +30,9 @@ typedef enum VarDeclKind
     NODE_KIND(BasicLit, "basic literal", struct {                       \
             Token token;                                                \
     })                                                                  \
+    NODE_KIND(String, "string literal", struct {                        \
+            gbArray(Token) strings;                                     \
+    })                                                                  \
     NODE_KIND(CompoundLit, "compound literal", struct {                 \
             Node *fields;                                               \
             Token open, close;                                          \

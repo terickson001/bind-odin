@@ -22,7 +22,7 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
     Package package = {0};
     gb_array_init(package.files, a);
     package.lib_name = conf->bind_conf.lib_name;
-    package.name     = conf->bind_conf.package_name;;
+    package.name     = conf->bind_conf.package_name;
 
     map_t type_table = hashmap_new(a);
     gbArray(String) system_includes = get_system_includes(a);
@@ -67,10 +67,11 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
         Preprocessor *pp = make_preprocessor(tokens, root_dir, task.input_filename, &conf->pp_conf);
         pp->system_includes = system_includes;
         run_pp(pp);
+        pp_print(pp, "./test/windows.i");
 
         gbArray(Define) defines = pp_dump_defines(pp, task.input_filename);
         
-        gb_array_append(pp->output, (Token){.kind=Token_EOF});
+        //gb_array_append(pp->output, (Token){.kind=Token_EOF});
         Parser parser = make_parser(0);
         hashmap_free(parser.type_table);
         parser.type_table = type_table;

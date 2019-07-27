@@ -9,18 +9,6 @@ workspace "bind"
     filter "Configurations:Release"
         optimize "Full"
         symbols "Off"
-    
-project "bind_find_vs"
-    kind "SharedLib"
-    language "C++"
-    location "build"
-    
-    targetdir "."
-    targetname "find_vs"
-
-    defines { "BUILD_DLL" }
-    files "./lib/find_vs.h"
-    links { "Advapi32.lib", "Ole32.lib", "OleAut32.lib" }
 
 project "bind"
     kind "ConsoleApp"
@@ -38,6 +26,19 @@ project "bind"
         
     filter "system:windows"
     links { "bind_find_vs", "kernel32.lib" }
+
+project "bind_find_vs"
+    kind "StaticLib"
+    language "C++"
+    location "build"
+    
+    targetdir "./lib"
+    targetname "find_vs"
+
+    defines { "BUILD_DLL" }
+    files "./lib/find_vs.cpp"
+    links { "Advapi32.lib", "Ole32.lib", "OleAut32.lib" }
+
 
 newaction {
    trigger = "clean",

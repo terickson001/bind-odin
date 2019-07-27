@@ -244,8 +244,8 @@ gbArray(Token) run_pp_sandboxed(Preprocessor *pp, Token_Run *run);
 
 void pp_write_token_run(Preprocessor *pp, Token_Run to_write)
 {
-    if (pp->context->in_include && !pp->context->in_sandbox) // Don't actually write things from includes
-        return;
+    // if (pp->context->in_include && !pp->context->in_sandbox) // Don't actually write things from includes
+    //     return;
 
     while (to_write.curr <= to_write.end)
     {
@@ -327,6 +327,8 @@ void pp_write_token_run(Preprocessor *pp, Token_Run to_write)
         if (pp->stringify_next ||
             (pp->context->in_macro && pp->context->stringify))
         {
+            tok.loc.column++;
+            pp->write_column++;
             tok.kind = Token_String;
             pp->stringify_next = false;
         }
@@ -376,7 +378,8 @@ int pp_next_ident_or_directive(Preprocessor *pp, b32 should_write)
             pp->paste_next = true;
         }
         else if (peek(pp).kind == Token_Hash ||
-                 peek(pp).kind == Token_Ident)
+                 peek(pp).kind == Token_Ident ||
+                 peek(pp).kind == Token_pragma)
         {
             break;
         }
@@ -393,7 +396,10 @@ int pp_next_ident_or_directive(Preprocessor *pp, b32 should_write)
         pp->context->tokens.curr++;
         return 1;
     }
-    
+
+    if (peek(pp).kind == Token_pragma)
+        return 1;
+
     if (peek(pp).kind == Token_Ident)
         return 2;
     
@@ -675,10 +681,11 @@ void _directive_skip_conditional_block(Preprocessor *pp, b32 skip_all)
     {
         // while not directive, consume and skip to next
         while (pp_next_ident_or_directive(pp, false) != 1) { pp_advance(pp); }
-        String directive = expect_tokens(&pp->context->tokens, 3,
+        String directive = expect_tokens(&pp->context->tokens, 4,
                                          Token_Ident,
                                          Token_if,
-                                         Token_else).str;
+                                         Token_else,
+                                         Token_pragma).str;
         if (cstring_cmp(directive, "if") == 0 ||
             cstring_cmp(directive, "ifdef") == 0 ||
             cstring_cmp(directive, "ifndef") == 0)
@@ -753,8 +760,20 @@ void directive_define(Preprocessor *pp)
 
 void directive_undef(Preprocessor *pp)
 {
-    String name = expect_token(&pp->context->tokens, Token_Ident).str;
-    remove_define(&pp->defines, name);
+    Token def_token = {0};
+    for (int k = Token__KeywordBegin+1; k < Token__KeywordEnd; k++)
+    {
+        def_token = accept_token(&pp->context->tokens, k);
+        if (def_token.str.start)
+            break;
+    }
+
+    if (!def_token.str.start)
+        def_token = expect_token(&pp->context->tokens, Token_Ident);
+    String def_name = def_token.str;
+
+    // String name = expect_token(&pp->context->tokens, Token_Ident).str;
+    remove_define(&pp->defines, def_name);
 }
 
 void _directive_include(Preprocessor *pp, b32 next)
@@ -982,6 +1001,29 @@ void directive_pragma(Preprocessor *pp)
     //               LIT(token_run_string(pragma)));
 }
 
+void keyword_pragma(Preprocessor *pp)
+{
+    Token_Run pragma = {&peek_at(pp, 1), &peek_at(pp, 1), 0};
+                
+    int skip_parens = 0;
+    do {
+        if (peek(pp).kind == Token_OpenParen) skip_parens++;
+        else if (peek(pp).kind == Token_CloseParen) skip_parens--;
+        pp_advance(pp);
+    } while (skip_parens > 0);
+    pragma.end = &peek_at(pp, -2);
+    
+    // Token_Run pragma = pp_get_line(pp);
+    
+    if (cstring_cmp(pragma.start->str, "once") == 0)
+        hashmap_put(pp->pragma_onces, pp->context->filename, 0);
+    // else
+    //     gb_printf("(%.*s:%ld): \e[32mNOTE:\e[0m '#pragma %.*s' skipped\n",
+    //               LIT(pp->context->filename),
+    //               pp->line,
+    //               LIT(token_run_string(pragma)));
+}
+
 void run_pp(Preprocessor *pp)
 {
     while (true)
@@ -997,10 +1039,11 @@ void run_pp(Preprocessor *pp)
         if (type == 1) // directive
         {
             Token *reset = &peek(pp);
-            String directive = expect_tokens(&pp->context->tokens, 3,
+            String directive = expect_tokens(&pp->context->tokens, 4,
                                              Token_Ident,
                                              Token_if,
-                                             Token_else).str;
+                                             Token_else,
+                                             Token_pragma).str;
             if (cstring_cmp(directive, "define") == 0)
             {
                 directive_define(pp);
@@ -1056,6 +1099,10 @@ void run_pp(Preprocessor *pp)
             else if (cstring_cmp(directive, "pragma") == 0)
             {
                 directive_pragma(pp);
+            }
+            else if (cstring_cmp(directive, "__pragma") == 0)
+            {
+                keyword_pragma(pp);
             }
             else if (pp->context->in_macro)
             {
@@ -1152,7 +1199,7 @@ void pp_print(Preprocessor *pp, char *filename)
         {
             newline = token.loc.line - prev_token.loc.line;
             if (!newline)
-                num_spaces = token.loc.column - (prev_token.loc.column+prev_token.str.len+(prev_token.kind == Token_String?2:0));
+                num_spaces = token.loc.column - (prev_token.loc.column+prev_token.str.len);
         }
 
         char *newlines = gb_alloc(a, newline+1);

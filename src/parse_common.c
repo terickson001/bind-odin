@@ -44,7 +44,7 @@ Token expect_tokens(Token_Run *run, isize n, ...)
 
     if (!found)
     {
-        syntax_error(run->curr[0], "Unexpected token '%s'", TokenKind_Strings[run->curr->kind]);
+        syntax_error(run->curr[0], "Unexpected token '%s'(%d)", TokenKind_Strings[run->curr->kind], run->curr->kind);
         return (Token){0};
     }
     

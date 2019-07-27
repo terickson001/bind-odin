@@ -8,7 +8,9 @@
     TOKEN_KIND(Token_Invalid, "Invalid"),       \
     TOKEN_KIND(Token_EOF,     "EOF"),           \
     TOKEN_KIND(Token_Comment, "Comment"),       \
-    TOKEN_KIND(Token_Paste,   "##"),              \
+    TOKEN_KIND(Token_Paste,   "##"),            \
+    TOKEN_KIND(Token_Charize, "#@"),            \
+    TOKEN_KIND(Token_At,      "@"),             \
 \
 TOKEN_KIND(Token__LiteralBegin, "_LiteralBegin"), \
     TOKEN_KIND(Token_Ident,     "identifier"),    \
@@ -77,40 +79,52 @@ TOKEN_KIND(Token__AssignOpEnd, "_AssignOpEnd"),     \
     TOKEN_KIND(Token_Hash,          "#"),       \
 TOKEN_KIND(Token__OperatorEnd, "_OperatorEnd"), \
 \
-TOKEN_KIND(Token__KeywordBegin, "_KeywordBegin"),     \
-        TOKEN_KIND(Token_signed,    "signed"),        \
-        TOKEN_KIND(Token_unsigned,  "unsigned"),      \
-        TOKEN_KIND(Token_short,     "short"),         \
-        TOKEN_KIND(Token_long,      "long"),          \
-        TOKEN_KIND(Token_int,       "int"),           \
-        TOKEN_KIND(Token_char,      "char"),          \
-        TOKEN_KIND(Token_typedef,   "typedef"),       \
-        TOKEN_KIND(Token_if,        "if"),            \
-        TOKEN_KIND(Token_else,      "else"),          \
-        TOKEN_KIND(Token_for,       "for"),           \
-        TOKEN_KIND(Token_switch,    "switch"),        \
-        TOKEN_KIND(Token_do,        "do"),            \
-        TOKEN_KIND(Token_while,     "while"),         \
-        TOKEN_KIND(Token_case,      "case"),          \
-        TOKEN_KIND(Token_break,     "break"),         \
-        TOKEN_KIND(Token_continue,  "continue"),      \
-        TOKEN_KIND(Token_return,    "return"),        \
-        TOKEN_KIND(Token_struct,    "struct"),        \
-        TOKEN_KIND(Token_union,     "union"),         \
-        TOKEN_KIND(Token_enum,      "enum"),          \
-        TOKEN_KIND(Token_static,    "static"),        \
-        TOKEN_KIND(Token_extern,    "extern"),        \
-        TOKEN_KIND(Token_goto,      "goto"),          \
-        TOKEN_KIND(Token_const,     "const"),         \
-        TOKEN_KIND(Token_sizeof,    "sizeof"),        \
-        TOKEN_KIND(Token_Alignof,   "_Alignof"),      \
-        TOKEN_KIND(Token_volatile,  "volatile"),      \
-        TOKEN_KIND(Token_register,  "register"),      \
-        TOKEN_KIND(Token_inline,    "inline"),        \
-        TOKEN_KIND(Token_attribute, "__attribute__"), \
-        TOKEN_KIND(Token_restrict,  "__restrict"),    \
-        TOKEN_KIND(Token_extension, "__extension__"), \
-        TOKEN_KIND(Token_asm,       "__asm__"),       \
+TOKEN_KIND(Token__KeywordBegin, "_KeywordBegin"),        \
+        TOKEN_KIND(Token_signed,       "signed"),        \
+        TOKEN_KIND(Token_unsigned,     "unsigned"),      \
+        TOKEN_KIND(Token_short,        "short"),         \
+        TOKEN_KIND(Token_long,         "long"),          \
+        TOKEN_KIND(Token_int,          "int"),           \
+        TOKEN_KIND(Token_char,         "char"),          \
+        TOKEN_KIND(Token__int8,        "__int8"),        \
+        TOKEN_KIND(Token__int16,       "__int16"),       \
+        TOKEN_KIND(Token__int32,       "__int32"),       \
+        TOKEN_KIND(Token__int64,       "__int64"),       \
+        TOKEN_KIND(Token_typedef,      "typedef"),       \
+        TOKEN_KIND(Token_if,           "if"),            \
+        TOKEN_KIND(Token_else,         "else"),          \
+        TOKEN_KIND(Token_for,          "for"),           \
+        TOKEN_KIND(Token_switch,       "switch"),        \
+        TOKEN_KIND(Token_do,           "do"),            \
+        TOKEN_KIND(Token_while,        "while"),         \
+        TOKEN_KIND(Token_case,         "case"),          \
+        TOKEN_KIND(Token_break,        "break"),         \
+        TOKEN_KIND(Token_continue,     "continue"),      \
+        TOKEN_KIND(Token_return,       "return"),        \
+        TOKEN_KIND(Token_struct,       "struct"),        \
+        TOKEN_KIND(Token_union,        "union"),         \
+        TOKEN_KIND(Token_enum,         "enum"),          \
+        TOKEN_KIND(Token_static,       "static"),        \
+        TOKEN_KIND(Token_extern,       "extern"),        \
+        TOKEN_KIND(Token_goto,         "goto"),          \
+        TOKEN_KIND(Token_const,        "const"),         \
+        TOKEN_KIND(Token_sizeof,       "sizeof"),        \
+        TOKEN_KIND(Token_Alignof,      "_Alignof"),      \
+        TOKEN_KIND(Token_volatile,     "volatile"),      \
+        TOKEN_KIND(Token_register,     "register"),      \
+        TOKEN_KIND(Token_inline,       "inline"),        \
+        TOKEN_KIND(Token__inline_,     "__inline__"),    \
+        TOKEN_KIND(Token__inline,      "__inline"),      \
+        TOKEN_KIND(Token__forceinline, "__forceinline"), \
+        TOKEN_KIND(Token_attribute,    "__attribute__"), \
+        TOKEN_KIND(Token_restrict,     "__restrict"),    \
+        TOKEN_KIND(Token_extension,    "__extension__"), \
+        TOKEN_KIND(Token_asm,          "__asm__"),       \
+        TOKEN_KIND(Token_pragma,       "__pragma"),      \
+        TOKEN_KIND(Token_cdecl,        "__cdecl"),       \
+        TOKEN_KIND(Token_stdcall,      "__stdcall"),     \
+        TOKEN_KIND(Token_declspec,     "__declspec"),    \
+        TOKEN_KIND(Token_unaligned,    "__unaligned"),   \
 TOKEN_KIND(Token__KeywordEnd, "_KeywordEnd"),
 
 typedef enum TokenKind
@@ -146,6 +160,7 @@ typedef struct Token
     TokenKind kind;
     String str;
     File_Location loc;
+    File_Location pp_loc;
 } Token;
 
 typedef struct Token_Run

@@ -5,14 +5,14 @@ set exe_name=bind.exe
 
 :: Debug = 0, Release = 1
 set release_mode=1
-set compiler_flags= -nologo -Oi -Gm- -MP -GS- -EHsc
+set compiler_flags= -nologo -Oi -Gm- -MP -GS- -EHsc- -Z7
 
-if %release_mode% EQU 0 ( rem Debug
-	set compiler_flags=%compiler_flags% -Od -MDd -Z7
-	rem -DDISPLAY_TIMING
-) else ( rem Release
-	set compiler_flags=%compiler_flags% -O2 -MT -Z7 -DNO_ARRAY_BOUNDS_CHECK
-)
+
+rem if %release_mode% EQU 0 ( rem Debug
+rem 	set compiler_flags=%compiler_flags% -Od -MDd -Z7
+rem ) else ( rem Release
+rem 	set compiler_flags=%compiler_flags% -O2 -MT -Z7 -DNO_ARRAY_BOUNDS_CHECK
+rem )
 
 set compiler_warnings= ^
 	-W4 ^
@@ -39,7 +39,7 @@ set linker_settings=%libs% %linker_flags%
 del *.pdb > NUL 2> NUL
 del *.ilk > NUL 2> NUL
 
-cl %compiler_settings% /TP /LD /DBUILD_DLL "lib\find_vs.h" ^
+cl %compiler_settings% /TP /LD /DBUILD_DLL "lib\find_vs.cpp" ^
 	/link Advapi32.lib Ole32.lib OleAut32.lib
 
 cl %compiler_settings% /TC "src\*.c" ^

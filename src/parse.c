@@ -91,6 +91,15 @@ Node *node_basic_lit(Parser *p, Token token)
     return node;
 }
 
+Node *node_string(Parser *p, gbArray(Token) strings)
+{
+    Node *node = make_node(p, String);
+
+    node->String.strings = strings;
+
+    return node;
+}
+
 Node *node_compound_lit(Parser *p, Node *fields, Token open, Token close)
 {
     Node *node = make_node(p, CompoundLit);
@@ -441,7 +450,8 @@ b32 accept(TokenKind k, Parser *p, Token *t)
 {
     if (p->curr->kind == k)
     {
-        *t = advance(p);
+        Token temp = advance(p);
+        if (t) *t = temp;
         return true;
     }
 
@@ -727,8 +737,10 @@ Node *try_type_expr(Parser *p)
 {
     Token *reset = p->curr;
     
-    b32 is_const = allow(Token_const, p);
-    
+    i8 res = allow_unordered(p, {Token_const, Token_volatile});
+    b32 is_const    = res & GB_BIT(0);
+    b32 is_volatile = res & GB_BIT(1);
+
     Node *type;
     switch (p->curr->kind)
     {
@@ -747,6 +759,10 @@ Node *try_type_expr(Parser *p)
     case Token_unsigned:
     case Token_short:
     case Token_long:
+    case Token__int8:
+    case Token__int16:
+    case Token__int32:
+    case Token__int64:
         type = parse_integer_type(p);
         break;
         
@@ -771,12 +787,16 @@ Node *try_type_expr(Parser *p)
     
 
     Token specifier;
-    while (accept_one_of(p, &specifier, {Token_Mul, Token_const}))
+    while (accept_one_of(p, &specifier, {Token_Mul, Token_const, Token_volatile, Token_register, Token_unaligned}))
     {
+        if (specifier.kind == Token_unaligned)
+            specifier = require(Token_Mul, p);
+
         if (specifier.kind == Token_Mul)
             type = node_pointer_type(p, specifier, type);
-        else
+        else if (specifier.kind == Token_const)
             type = node_const_type(p, specifier, type);
+        // Discard `volatile` and `register`
     }
 
     Token open, close;
@@ -1437,6 +1457,10 @@ Node *parse_integer_type(Parser *p)
         case Token_unsigned:
         case Token_long:
         case Token_short:
+        case Token__int8:
+        case Token__int16:
+        case Token__int32:
+        case Token__int64:
             gb_array_append(specifiers, advance(p));
             continue;
         default: break;
@@ -1447,11 +1471,10 @@ Node *parse_integer_type(Parser *p)
 
 Node *parse_type(Parser *p)
 {
-    u8 res = allow_unordered(p, {Token_static, Token_volatile, Token_const, Token_register});
-    b32 is_static   = res & GB_BIT(0);
-    b32 is_volatile = res & GB_BIT(1);
-    b32 is_const    = res & GB_BIT(2);
-    b32 is_register = res & GB_BIT(3);
+    u8 res = allow_unordered(p, {Token_volatile, Token_const, Token_register});
+    b32 is_volatile = res & GB_BIT(0);
+    b32 is_const    = res & GB_BIT(1);
+    b32 is_register = res & GB_BIT(2);
 
     Node *type;
     switch (p->curr->kind)
@@ -1469,6 +1492,10 @@ Node *parse_type(Parser *p)
     case Token_unsigned:
     case Token_short:
     case Token_long:
+    case Token__int8:
+    case Token__int16:
+    case Token__int32:
+    case Token__int64:
         type = parse_integer_type(p);
         break;
     case Token_Ident:
@@ -1486,12 +1513,16 @@ Node *parse_type(Parser *p)
     
 
     Token specifier;
-    while (accept_one_of(p, &specifier, {Token_Mul, Token_const}))
+    while (accept_one_of(p, &specifier, {Token_Mul, Token_const, Token_volatile, Token_register, Token_unaligned}))
     {
+        if (specifier.kind == Token_unaligned)
+            specifier = require(Token_Mul, p);
+
         if (specifier.kind == Token_Mul)
             type = node_pointer_type(p, specifier, type);
-        else
+        else if (specifier.kind == Token_const)
             type = node_const_type(p, specifier, type);
+        // Discard `volatile` and `register`
     }
 
     Token open, close;
@@ -1572,6 +1603,7 @@ Node *parse_attributes(Parser *p)
 
     return node_attr_list(p, list);
 }
+
 
 Node *parse_function_type(Parser *p, Node *ret_type, NodeKind *base_kind_out)
 {
@@ -1773,13 +1805,65 @@ Node *parse_var_decl(Parser *p, VarDeclKind kind)
     return list;
 }
 
+Node *parse_string(Parser *p)
+{
+    gbArray(Token) strings;
+    gb_array_init(strings, p->alloc);
+
+    Token curr_str;
+    while (accept(Token_String, p, &curr_str))
+        gb_array_append(strings, curr_str);
+
+    return node_string(p, strings); 
+}
+
+Node *parse_decl_spec(Parser *p)
+{
+    Token tok = require(Token_declspec, p);
+    Token open, close;
+    open = require(Token_OpenParen, p);
+
+    Node *name;
+    Node *arg = 0;
+
+    name = parse_ident(p);
+    if (allow(Token_OpenParen, p))
+    {
+        if (cstring_cmp(name->Ident.token.str, "align") == 0)
+            arg = parse_expression(p);
+        else if (cstring_cmp(name->Ident.token.str, "allocate") == 0)
+            arg = parse_string(p);
+        else if (cstring_cmp(name->Ident.token.str, "code_seg") == 0)
+            arg = parse_string(p);
+        else if (cstring_cmp(name->Ident.token.str, "property") == 0)
+            arg = parse_expr_list(p);
+        else if (cstring_cmp(name->Ident.token.str, "uuid") == 0)
+            arg = parse_string(p);
+        else if (cstring_cmp(name->Ident.token.str, "deprecated") == 0)
+            arg = parse_string(p);
+        else
+            error(tok, "'__declspec(%.*s)' takes no arguments", LIT(name->Ident.token.str));
+        require(Token_CloseParen, p);
+    }
+    close = require(Token_CloseParen, p);
+
+    return 0;
+}
+
 Node *parse_decl(Parser *p)
 {
+    if (p->curr->kind == Token_declspec)
+        parse_decl_spec(p);
+
     allow(Token_extern, p);
-    b32 is_inline = allow(Token_inline, p);
+    allow(Token_static, p);
+    b32 is_inline = accept_one_of(p, 0, {Token_inline, Token__inline, Token__inline_, Token__forceinline});
 
     Node *type, *name;
     type = parse_type(p);
+
+    Token call_conv;
+    accept_one_of(p, &call_conv, {Token_cdecl, Token_stdcall});
 
     Token sc;
     if (accept(Token_Semicolon, p, &sc))

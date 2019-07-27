@@ -263,6 +263,10 @@ String integer_type_str(TypeInfo *info)
         case Token_unsigned: is_signed = 0; break;
         case Token_short:    size >>= 1;    break;
         case Token_long:     size <<= 1;    break;
+        case Token__int8:    size = 8;      break;
+        case Token__int16:   size = 16;     break;
+        case Token__int32:   size = 32;     break;
+        case Token__int64:   size = 64;     break;
 
         default: break;
         }

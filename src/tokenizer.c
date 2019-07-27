@@ -158,11 +158,18 @@ Token get_token(Tokenizer *t)
         case '\\': token.kind = Token_BackSlash;    break;
         case '~':  token.kind = Token_BitNot;       break;
         case '?':  token.kind = Token_Question;     break;
-
+        case '@':  token.kind = Token_At;           break;
+        
         case '#':  {
             if (t->curr[0] == '#')
             {
                 token.kind = Token_Paste;
+                t->curr++;
+                token.str.len = 2;
+            }
+            else if (t->curr[0] == '@')
+            {
+                token.kind = Token_Charize;
                 t->curr++;
                 token.str.len = 2;
             }
