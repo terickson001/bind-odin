@@ -72,7 +72,7 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
 
         gbArray(Define) defines = pp_dump_defines(pp, task.input_filename);
         
-        //gb_array_append(pp->output, (Token){.kind=Token_EOF});
+        gb_array_append(pp->output, (Token){.kind=Token_EOF});
         Parser parser = make_parser(0);
         hashmap_free(parser.type_table);
         parser.type_table = type_table;

@@ -1132,6 +1132,12 @@ Node *parse_record_fields(Parser *p)
     Node *var;
     do
     {
+        u8 res = allow_unordered(p, {Token_volatile, Token_const, Token_register, Token_extension});
+        b32 is_volatile  = res & GB_BIT(0);
+        b32 is_const     = res & GB_BIT(1);
+        b32 is_register  = res & GB_BIT(2);
+        b32 is_extension = res & GB_BIT(3);
+    
         record = 0;
         switch (p->curr->kind)
         {
