@@ -49,6 +49,7 @@ typedef enum Rename_Kind {
 } Rename_Kind;
 String rename_ident(String orig, Rename_Kind r, b32 do_remove_prefix, map_t rename_map, BindConfig *conf, gbAllocator allocator);
 
+String float_type_str(TypeInfo *info);
 String integer_type_str(TypeInfo *info);
 String convert_type(TypeInfo *info, map_t rename_map, BindConfig *conf, gbAllocator allocator);
 

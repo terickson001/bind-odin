@@ -38,7 +38,9 @@ Define *get_define(Define_Map *defines, String name)
     return defines_get(defines, gb_crc64(name.start, name.len));
 }
 
-#define STRING(x) #x
+#define _STRING(x) #x
+#define STRING(x) _STRING(x)
+
 void init_std_defines(Define_Map **defines)
 {
     u64 time_now = gb_utc_time_now();

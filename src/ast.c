@@ -19,6 +19,11 @@ TypeInfo get_type_info(Node *type, gbAllocator a)
         case NodeKind_ConstType:
             type = type->ConstType.type;
             ti.is_const = true;
+            continue;
+        case NodeKind_BitfieldType:
+            type = type->BitfieldType.type;
+            ti.is_bitfield = true;
+            continue;
         default: break;
         }
         break;
@@ -28,27 +33,26 @@ TypeInfo get_type_info(Node *type, gbAllocator a)
     return ti;
 }
 
-void __print_node(Node *node)
+void __print_node(Node *node, int depth)
 {
     if (!node)
         return;
     switch (node->kind)
     {
     case NodeKind_FunctionDecl:
-        __print_node(node->FunctionDecl.ret_type);
-        __print_node(node->FunctionDecl.name);
+        __print_node(node->FunctionDecl.type->FunctionType.ret_type, depth+1);
+        __print_node(node->FunctionDecl.name, depth+1);
         gb_printf("(");
-        __print_node(node->FunctionDecl.params);
+        __print_node(node->FunctionDecl.type->FunctionType.params, depth+1);
         gb_printf(")");
         break;
     case NodeKind_Ident:
         gb_printf("%.*s", LIT(node->Ident.token.str));
         break;
     case NodeKind_FunctionType:
-        __print_node(node->FunctionType.ret_type);
-        gb_printf("(*)");
+        __print_node(node->FunctionType.ret_type, depth+1);
         gb_printf("(");
-        __print_node(node->FunctionType.params);
+        __print_node(node->FunctionType.params, depth+1);
         gb_printf(")");
         break;
     case NodeKind_IntegerType: {
@@ -57,40 +61,40 @@ void __print_node(Node *node)
         break;
     }
     case NodeKind_PointerType:
-        __print_node(node->PointerType.type);
+        __print_node(node->PointerType.type, depth+1);
         gb_printf("*");
         break;
     case NodeKind_ArrayType:
-        __print_node(node->ArrayType.type);
+        __print_node(node->ArrayType.type, depth+1);
         gb_printf("[");
-        __print_node(node->ArrayType.count);
+        __print_node(node->ArrayType.count, depth+1);
         gb_printf("]");
         break;
     case NodeKind_StructType:
         gb_printf("struct ");
-        __print_node(node->StructType.name);
+        __print_node(node->StructType.name, depth+1);
         gb_printf("{");
-        __print_node(node->StructType.fields);
+        __print_node(node->StructType.fields, depth+1);
         gb_printf("}");
         break;
     case NodeKind_UnionType:
         gb_printf("union ");
-        __print_node(node->UnionType.name);
+        __print_node(node->UnionType.name, depth+1);
         gb_printf("{");
-        __print_node(node->UnionType.fields);
+        __print_node(node->UnionType.fields, depth+1);
         gb_printf("}");
         break;
     case NodeKind_EnumType:
         gb_printf("enum ");
-        __print_node(node->EnumType.name);
+        __print_node(node->EnumType.name, depth+1);
         gb_printf("{");
-        __print_node(node->EnumType.fields);
+        __print_node(node->EnumType.fields, depth+1);
         gb_printf("}");
         break;
     case NodeKind_VarDeclList:
         for (int i = 0; i < gb_array_count(node->VarDeclList.list); i++)
         {
-            __print_node(node->VarDeclList.list[i]);
+            __print_node(node->VarDeclList.list[i], depth+1);
             switch (node->VarDeclList.kind)
             {
             case VarDecl_Field:
@@ -110,30 +114,30 @@ void __print_node(Node *node)
         }
         break;
     case NodeKind_VarDecl:
-        __print_node(node->VarDecl.type);
-        __print_node(node->VarDecl.name);
+        __print_node(node->VarDecl.type, depth+1);
+        __print_node(node->VarDecl.name, depth+1);
         break;
     case NodeKind_EnumFieldList:
         for (int i = 0; i < gb_array_count(node->EnumFieldList.fields); i++)
         {
-            __print_node(node->EnumFieldList.fields[i]);
+            __print_node(node->EnumFieldList.fields[i], depth+1);
             if (gb_array_count(node->EnumFieldList.fields) != i+1)
                 gb_printf(",");
         }
         break;
     case NodeKind_EnumField:
-        __print_node(node->EnumField.name);
+        __print_node(node->EnumField.name, depth+1);
         break;
     case NodeKind_VaArgs:
         gb_printf("...");
         return;
     case NodeKind_ConstType:
         gb_printf("const ");
-        __print_node(node->ConstType.type);
+        __print_node(node->ConstType.type, depth+1);
         break;
     case NodeKind_Typedef:
         gb_printf("typedef ");
-        __print_node(node->Typedef.var_list);
+        __print_node(node->Typedef.var_list, depth+1);
         break;
 
     case NodeKind_BasicLit:
@@ -147,43 +151,43 @@ void __print_node(Node *node)
         break;
     case NodeKind_UnaryExpr:
         gb_printf("%.*s ", LIT(node->UnaryExpr.op.str));
-        __print_node(node->UnaryExpr.operand);
+        __print_node(node->UnaryExpr.operand, depth+1);
         break;
     case NodeKind_BinaryExpr:
-        __print_node(node->BinaryExpr.left);
+        __print_node(node->BinaryExpr.left, depth+1);
         gb_printf(" %.*s ", LIT(node->BinaryExpr.op.str));
-        __print_node(node->BinaryExpr.right);
+        __print_node(node->BinaryExpr.right, depth+1);
         break;
     case NodeKind_TernaryExpr:
-        __print_node(node->TernaryExpr.cond);
+        __print_node(node->TernaryExpr.cond, depth+1);
         gb_printf(" ? ");
-        __print_node(node->TernaryExpr.then);
+        __print_node(node->TernaryExpr.then, depth+1);
         gb_printf(" : ");
-        __print_node(node->TernaryExpr.els_);
+        __print_node(node->TernaryExpr.els_, depth+1);
         break;
     case NodeKind_IncDecExpr:
-        __print_node(node->IncDecExpr.expr);
+        __print_node(node->IncDecExpr.expr, depth+1);
         gb_printf("%.*s", LIT(node->IncDecExpr.op.str));
         break;
     case NodeKind_CallExpr:
-        __print_node(node->CallExpr.func);
+        __print_node(node->CallExpr.func, depth+1);
         gb_printf("()");
         break;
     case NodeKind_ParenExpr:
         gb_printf("(");
-        __print_node(node->ParenExpr.expr);
+        __print_node(node->ParenExpr.expr, depth+1);
         gb_printf(")");
         break;
     case NodeKind_IndexExpr:
-        __print_node(node->IndexExpr.expr);
+        __print_node(node->IndexExpr.expr, depth+1);
         gb_printf("[");
-        __print_node(node->IndexExpr.index);
+        __print_node(node->IndexExpr.index, depth+1);
         gb_printf("]");
         break;
     case NodeKind_SelectorExpr:
-        __print_node(node->SelectorExpr.expr);
+        __print_node(node->SelectorExpr.expr, depth+1);
         gb_printf("%.*s", LIT(node->SelectorExpr.token.str));
-        __print_node(node->SelectorExpr.selector);
+        __print_node(node->SelectorExpr.selector, depth+1);
         break;
     default: return;
     }
@@ -192,7 +196,7 @@ void __print_node(Node *node)
 
 void print_ast_node(Node *node)
 {
-    __print_node(node);
+    __print_node(node, 0);
     gb_printf(";\n");
 }
 

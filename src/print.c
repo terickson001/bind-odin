@@ -330,8 +330,8 @@ void print_base_type(Printer p, Node *node, int indent)
     
     // print_indent(p, indent);
     
-    for (int i = 0; i < info.stars; i++)
-        gb_fprintf(p.out_file, "^");
+    // for (int i = 0; i < info.stars; i++)
+    //     gb_fprintf(p.out_file, "^");
     
     switch (info.base_type->kind)
     {
@@ -349,30 +349,41 @@ void print_base_type(Printer p, Node *node, int indent)
     print_string(p, name, 0);
 }
 
-// TODO(@Robustness): This assumes that an ArrayType is never the child of
-//                    a PointerType or ConstType
 void print_type(Printer p, Node *node, int indent)
 {
-    // print_indent(p, indent);
-
     switch (node->kind)
     {
     case NodeKind_ArrayType:    print_array_type   (p, node, 0); break;
     case NodeKind_FunctionType: print_function_type(p, node, 0); break;
         
-    case NodeKind_ConstType:
-    case NodeKind_PointerType: {
-        TypeInfo info = get_type_info(node, p.allocator);
-        switch (info.base_type->kind)
+    case NodeKind_ConstType:    print_type(p, node->ConstType.type, 0); break;
+
+    case NodeKind_PointerType: { // Lots of special cases for pointer types
+        switch (node->PointerType.type->kind)
         {
-        case NodeKind_FunctionType:
-            for (int i = 0; i < info.stars; i++)
-                gb_fprintf(p.out_file, "^");
-            print_function_type(p, info.base_type, 0);
-            return;
-        default: break;
+        case NodeKind_FunctionType: print_function_type(p, node->PointerType.type, 0); return;
+        case NodeKind_Ident: {
+            String name = node->PointerType.type->Ident.token.str;
+            if (cstring_cmp(name, "void") == 0)
+            {
+                gb_fprintf(p.out_file, "rawptr");
+                return;
+            }
+        } break;
+        case NodeKind_IntegerType: {
+            TypeInfo ti = get_type_info(node->PointerType.type, p.allocator);
+            String str = integer_type_str(&ti);
+            if (cstring_cmp(str, "u8") == 0)
+            {
+                gb_fprintf(p.out_file, "cstring");
+                return;
+            }
+        } break;
         }
-    }
+        gb_fprintf(p.out_file, "^");
+        print_type(p, node->PointerType.type, 0);
+    } break;
+
     case NodeKind_StructType:
     case NodeKind_UnionType:
     case NodeKind_EnumType:
@@ -645,18 +656,18 @@ void print_function(Printer p, Node *node, int indent)
    
     gb_fprintf(p.out_file, "proc(");
 
-    if (node->FunctionDecl.params)
-        print_function_parameters(p, node->FunctionDecl.params, 0);
+    if (node->FunctionDecl.type->FunctionType.params)
+        print_function_parameters(p, node->FunctionDecl.type->FunctionType.params, 0);
     
     gb_fprintf(p.out_file, ")");
 
-    TypeInfo info = get_type_info(node->FunctionDecl.ret_type, p.allocator);
+    TypeInfo info = get_type_info(node->FunctionDecl.type->FunctionType.ret_type, p.allocator);
     b32 returns_void = info.stars == 0 && !info.is_array
         && info.base_type->kind == NodeKind_Ident && cstring_cmp(info.base_type->Ident.token.str, "void") == 0;
     if (!returns_void)
     {
         gb_fprintf(p.out_file, " -> ");
-        print_type(p, node->FunctionDecl.ret_type, 0);
+        print_type(p, node->FunctionDecl.type->FunctionType.ret_type, 0);
     }
     
     gb_fprintf(p.out_file, " --- ");

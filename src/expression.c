@@ -552,7 +552,6 @@ Expr *pp_parse_expression(Token_Run expr, gbAllocator allocator, Preprocessor *p
             }
             else
             {
-
                 Define def = {0};
                 if (pp)
                     def = pp_get_define(pp, ident_str);

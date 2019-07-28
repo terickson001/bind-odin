@@ -282,14 +282,14 @@ Node *node_enum_field_list(Parser *p, gbArray(Node *) fields)
     return node;
 }
 
-Node *node_function_decl(Parser *p, Node *ret_type, Node *name, Node *params, Node *body, b32 inlined)
+Node *node_function_decl(Parser *p, Node *type, Node *name, Node *body)
 {
     Node *node = make_node(p, FunctionDecl);
-    node->FunctionDecl.ret_type = ret_type;
+
+    node->FunctionDecl.type = type;
     node->FunctionDecl.name = name;
-    node->FunctionDecl.params = params;
     node->FunctionDecl.body = body;
-    node->FunctionDecl.inlined = inlined;
+
     return node;
 }
 
@@ -305,6 +305,15 @@ Node *node_integer_type(Parser *p, gbArray(Token) specifiers)
     Node * node = make_node(p, IntegerType);
 
     node->IntegerType.specifiers = specifiers;
+
+    return node;
+}
+
+Node *node_float_type(Parser *p, gbArray(Token) specifiers)
+{
+    Node * node = make_node(p, FloatType);
+
+    node->FloatType.specifiers = specifiers;
 
     return node;
 }
@@ -362,14 +371,23 @@ Node *node_enum_type(Parser *p, Token token, Node *name, Node *fields)
     return node;
 }
 
-Node *node_function_type(Parser *p, Node *ret_type, Node *params, Token open, Token close, Token pointer)
+Node *node_function_type(Parser *p, Node *ret_type, Node *params)
 {
     Node *node = make_node(p, FunctionType);
-    node->FunctionType.ret_type = ret_type;
-    node->FunctionType.params   = params;
-    node->FunctionType.open     = open;
-    node->FunctionType.close    = close;
-    node->FunctionType.pointer  = pointer;
+
+    node->FunctionType.ret_type =  ret_type;
+    node->FunctionType.params = params;
+
+    return node;
+}
+
+Node *node_bitfield_type(Parser *p, Node *type, Node *size)
+{
+    Node *node = make_node(p, BitfieldType);
+
+    node->BitfieldType.type = type;
+    node->BitfieldType.size = size;
+
     return node;
 }
 
@@ -419,6 +437,12 @@ Node *get_base_type(Node *n)
             continue;
         case NodeKind_ConstType:
             type = type->ConstType.type;
+            continue;
+        case NodeKind_BitfieldType:
+            type = type->BitfieldType.type;
+            continue;
+        case NodeKind_FunctionType:
+            type = type->FunctionType.ret_type;
             continue;
         default: break;
         }
@@ -594,15 +618,13 @@ Node *parse_enum_fields(Parser *p);
 Node *parse_enum(Parser *p);
 Node *parse_parameter(Parser *p);
 Node *parse_parameter_list(Parser *p);
-Node *parse_integer_type(Parser *p);
-Node *parse_type(Parser *p);
+Node *parse_integer_or_float_type(Parser *p);
+Node *parse_type(Parser *p, Node **var_name);
 Node *parse_typedef(Parser *p);
 Node *parse_attribute(Parser *p);
 Node *parse_attributes(Parser *p);
 Node *parse_function_type(Parser *p, Node *base_type, NodeKind *base_kind_out);
-Node *parse_var_decl_list(Parser *p, Node *base_type, Node *first, VarDeclKind kind);
-Node *parse_var_decl(Parser *p, VarDeclKind kind);
-Node *parse_decl(Parser *p);
+Node *parse_decl(Parser *p, VarDeclKind var_kind);
 
 Node *parse_compound_literal(Parser *p)
 {
@@ -720,18 +742,6 @@ Node *parse_paren_expr(Parser *p)
 
     return node_paren_expr(p, expr, open, close);
 }
-Node *parse_cast_expr(Parser *p)
-{
-    Token open, close;
-    Node *type, *expr;
-
-    open  = require(Token_OpenParen,  p);
-    type  = parse_type(p);
-    close = require(Token_CloseParen, p);
-    expr  = parse_expression(p);
-
-    return node_type_cast(p, type, expr, open, close);
-}
 
 Node *try_type_expr(Parser *p)
 {
@@ -752,7 +762,9 @@ Node *try_type_expr(Parser *p)
     case Token_enum:
         type = parse_enum(p);
         break;
-        
+    
+    case Token_float:
+    case Token_double:
     case Token_int:
     case Token_char:
     case Token_signed:
@@ -763,7 +775,7 @@ Node *try_type_expr(Parser *p)
     case Token__int16:
     case Token__int32:
     case Token__int64:
-        type = parse_integer_type(p);
+        type = parse_integer_or_float_type(p);
         break;
         
     case Token_Ident: {
@@ -787,7 +799,7 @@ Node *try_type_expr(Parser *p)
     
 
     Token specifier;
-    while (accept_one_of(p, &specifier, {Token_Mul, Token_const, Token_volatile, Token_register, Token_unaligned, Token_restrict}))
+    while (accept_one_of(p, &specifier, {Token_Mul, Token_const, Token_volatile, Token_register, Token_unaligned, Token_restrict, Token_OpenParen}))
     {
         if (specifier.kind == Token_unaligned)
             specifier = require(Token_Mul, p);
@@ -1010,40 +1022,11 @@ Node *parse_record_fields(Parser *p)
     Node *var;
     do
     {
-        u8 res = allow_unordered(p, {Token_volatile, Token_const, Token_register, Token_extension});
-        b32 is_volatile  = res & GB_BIT(0);
-        b32 is_const     = res & GB_BIT(1);
-        b32 is_register  = res & GB_BIT(2);
-        b32 is_extension = res & GB_BIT(3);
-    
-        record = 0;
-        switch (p->curr->kind)
-        {
-        case Token_struct:
-        case Token_union:
-            record = parse_record(p);
-            break;
-        case Token_enum:
-            record = parse_enum(p);
-            break;
-        default: break;
-        }
-
-        if (record)
-        {
-            if (p->curr->kind == Token_Semicolon)
-                var = node_var_decl(p, record, 0 /* name */, VarDecl_AnonRecord);
-            else
-                var = parse_var_decl_list(p, record, 0 /* first */, VarDecl_Field);
-        }
-        else
-        {
-            var = parse_var_decl(p, VarDecl_Field);
-        }
+        var = parse_decl(p, VarDecl_Field);
 
         switch (var->kind)
         {
-        case NodeKind_VarDecl: gb_array_append(vars, var); break;
+        case NodeKind_VarDecl: gb_array_append(vars, var); break; // VarDecl_AnonRecord
         case NodeKind_VarDeclList:
             for (int i = 0; i < gb_array_count(var->VarDeclList.list); i++)
                 gb_array_append(vars, var->VarDeclList.list[i]);
@@ -1051,8 +1034,7 @@ Node *parse_record_fields(Parser *p)
         default: break;
         }
 
-        require(Token_Semicolon, p);
-
+        // require(Token_Semicolon, p);
     } while (!accept(Token_CloseBrace, p, &close));
 
     return node_var_decl_list(p, vars, VarDecl_Field);
@@ -1162,45 +1144,12 @@ Node *parse_parameter(Parser *p)
     if (p->curr->kind == Token_Ellipsis)
         return node_var_decl(p, node_va_args(p, require(Token_Ellipsis, p)), name, VarDecl_VaArgs);
     
-    type = parse_type(p);
+    type = parse_type(p, &name);
 
-    if (p->curr->kind == Token_OpenParen)
-    {
-        Token open = *p->curr;
-        NodeKind base_kind;
-        Node *var = parse_function_type(p, type, &base_kind);
-        switch (var->kind)
-        {
-        case NodeKind_VarDecl:
-            var->VarDecl.kind = VarDecl_Parameter;
-            return var;
-        case NodeKind_FunctionType:
-            return node_var_decl(p, var, 0 /* name */, VarDecl_NamelessParameter);
-        case NodeKind_FunctionDecl:
-            error(open, "Function Declaration is not allowed in parameter list");
-        default:
-            error(open,
-             "Invalid node '%.*s' returned from parse_function_type in parse_parameter",
-             LIT(node_strings[var->kind]));
-            return &NODE_INVALID;
-        }
-    }
-    
-    if (p->curr->kind == Token_Ident)
-        name = parse_ident(p);
+    if (name)
+        return node_var_decl(p, type, name, VarDecl_Parameter);
     else
         return node_var_decl(p, type, name, VarDecl_NamelessParameter); 
-    
-    Token open, close;
-    Node *count;
-    while (accept(Token_OpenBracket, p, &open))
-    {
-        count = parse_expression(p);
-        close = require(Token_CloseBracket, p);
-        type = node_array_type(p, type, count, open, close);
-    }
-    
-    return node_var_decl(p, type, name, VarDecl_Parameter);
 }
 
 Node *parse_parameter_list(Parser *p)
@@ -1209,7 +1158,7 @@ Node *parse_parameter_list(Parser *p)
     open = require(Token_OpenParen, p);
 
     if (accept(Token_CloseParen, p, &close))
-        return &NODE_INVALID;
+        return 0;
 
     gbArray(Node *) params = 0;
     gb_array_init(params, p->alloc);
@@ -1224,19 +1173,10 @@ Node *parse_parameter_list(Parser *p)
     return node_var_decl_list(p, params, VarDecl_Parameter);
 }
 
-// void *(*foo)(int, char)
-//     -- Function pointer 'foo'
-// void *(*foo(float, double))(int, char)
-//     -- Function 'foo' with FP return type
-// void *(*(*foo)(float, double))(int, char)
-//     -- Function pointer 'foo' with FP return type
-// void *(*(*(*foo)(char, float))(float, double))(int, char)
-//     -- Function pointer 'foo' with FP return type, with FP return type [This one's a little much]
-// void *(*foo(float, void *(*)(double)))(int, char)
-//     -- Function 'foo' with FP param and return
-
-Node *parse_integer_type(Parser *p)
+Node *parse_integer_or_float_type(Parser *p)
 {
+    b32 is_float = false;
+
     gbArray(Token) specifiers;
     gb_array_init(specifiers, p->alloc);
     
@@ -1244,6 +1184,9 @@ Node *parse_integer_type(Parser *p)
     {
         switch (p->curr->kind)
         {
+        case Token_float:
+        case Token_double:
+            is_float = true;
         case Token_int:
         case Token_char:
         case Token_signed:
@@ -1258,98 +1201,39 @@ Node *parse_integer_type(Parser *p)
             continue;
         default: break;
         }
+        if (is_float) return node_float_type(p, specifiers);
         return node_integer_type(p, specifiers);
     }
-}
-
-Node *parse_type(Parser *p)
-{
-    u8 res = allow_unordered(p, {Token_volatile, Token_const, Token_register, Token_extension});
-    b32 is_volatile  = res & GB_BIT(0);
-    b32 is_const     = res & GB_BIT(1);
-    b32 is_register  = res & GB_BIT(2);
-    b32 is_extension = res & GB_BIT(3);
-
-    Node *type;
-    switch (p->curr->kind)
-    {
-    case Token_struct:
-    case Token_union:
-        type = parse_record(p);
-        break;
-    case Token_enum:
-        type = parse_enum(p);
-        break;
-    case Token_int:
-    case Token_char:
-    case Token_signed:
-    case Token_unsigned:
-    case Token_short:
-    case Token_long:
-    case Token__int8:
-    case Token__int16:
-    case Token__int32:
-    case Token__int64:
-        type = parse_integer_type(p);
-        break;
-    case Token_Ident:
-        type = parse_ident(p);
-        break;
-    default:
-        error(*p->curr, "Invalid token '%.*s' in type", LIT(TokenKind_Strings[p->curr->kind]));
-        break;
-    }
-
-    if (p->curr[0].kind == Token_OpenParen
-     && p->curr[1].kind == Token_Mul
-     && p->curr[2].kind == Token_CloseParen)
-        return parse_function_type(p, type, 0);
-    
-
-    Token specifier;
-    while (accept_one_of(p, &specifier, {Token_Mul, Token_const, Token_volatile, Token_register, Token_unaligned, Token_restrict}))
-    {
-        if (specifier.kind == Token_unaligned)
-            specifier = require(Token_Mul, p);
-
-        if (specifier.kind == Token_Mul)
-            type = node_pointer_type(p, specifier, type);
-        else if (specifier.kind == Token_const)
-            type = node_const_type(p, specifier, type);
-        // Discard `volatile` and `register`
-    }
-
-    Token open, close;
-    Node *count;
-    while (accept(Token_OpenBracket, p, &open))
-    {
-        count = parse_expression(p);
-        close = require(Token_CloseBracket, p);
-        type  = node_array_type(p, type, count, open, close);
-    }
-    
-    return type;
 }
 
 Node *parse_typedef(Parser *p)
 {
     Token token;
-    Node *var_list;
+    Node *vars;
 
-    token    = require(Token_typedef, p);
-    var_list = parse_var_decl(p, VarDecl_Variable);
+    token = require(Token_typedef, p);
+    vars  = parse_decl(p, VarDecl_Typedef);
 
-    if (var_list->kind != NodeKind_VarDeclList)
+    if (vars->kind != NodeKind_VarDeclList
+        && vars->kind != NodeKind_VarDecl)
         error(token, "Expected type declaration after 'typedef', got none");
 
     // Add to type table
-    for (int i = 0; i < gb_array_count(var_list->VarDeclList.list); i++)
-        hashmap_put(p->type_table, var_list->VarDeclList.list[i]->VarDecl.name->Ident.token.str, 0);
+    if (vars->kind == NodeKind_VarDecl)
+    {
+        hashmap_put(p->type_table, vars->VarDecl.name->Ident.token.str, 0);
+        gbArray(Node *) list;
+        gb_array_init(list, p->alloc);
+        gb_array_append(list, vars);
+        vars = node_var_decl_list(p, list, VarDecl_Typedef);
+    }
+    else
+        for (int i = 0; i < gb_array_count(vars->VarDeclList.list); i++)
+            hashmap_put(p->type_table, vars->VarDeclList.list[i]->VarDecl.name->Ident.token.str, 0);
         
+    // require(Token_Semicolon, p);
     
-    require(Token_Semicolon, p);
-    
-    return node_typedef(p, token, var_list);
+    return node_typedef(p, token, vars);
 }
 
 Node *parse_attribute(Parser *p)
@@ -1401,10 +1285,15 @@ Node *parse_attributes(Parser *p)
 
 Node *parse_function_type(Parser *p, Node *ret_type, NodeKind *base_kind_out)
 {
+    b32 pointerless = true;
     Token open, pointer, close;
     Node *params;
-    open    = require(Token_OpenParen, p);
-    pointer = require(Token_Mul,       p);
+    open = pointer = close = (Token){0};
+    if (p->curr->kind == Token_OpenParen)
+        open = require(Token_OpenParen, p);
+
+    if (accept(Token_Mul, p, &pointer))
+        pointerless = false;
 
     Node *base_type = 0;
     Node *type = 0;
@@ -1420,7 +1309,8 @@ Node *parse_function_type(Parser *p, Node *ret_type, NodeKind *base_kind_out)
     if (p->curr->kind == Token_Ident)
     {
         name = parse_ident(p);
-        if (p->curr->kind == Token_OpenParen)
+        if (!pointerless
+         && p->curr->kind == Token_OpenParen)
             func_params = parse_parameter_list(p);
         
     }
@@ -1434,11 +1324,13 @@ Node *parse_function_type(Parser *p, Node *ret_type, NodeKind *base_kind_out)
         type  = node_array_type(p, type, arr_count, arr_open, arr_close);
         if (!base_type) base_type = type;
     }
-    
-    close  = require(Token_CloseParen, p);
+
+    if (open.kind)
+        close  = require(Token_CloseParen, p);
+
     params = parse_parameter_list(p);
 
-    Node *fp = node_function_type(p, ret_type, params, open, close, pointer);
+    Node *fp = 0;//node_function_type(p, ret_type, params, open, close, pointer);
     if (base_type)
     {
         switch (base_type->kind)
@@ -1456,7 +1348,7 @@ Node *parse_function_type(Parser *p, Node *ret_type, NodeKind *base_kind_out)
     if (func_params)
     {
         if (base_kind_out) *base_kind_out = NodeKind_FunctionDecl;
-        return node_function_decl(p, type, name, func_params, 0 /* body */, false /* inlined */);
+//        return node_function_decl(p, type, name, func_params, 0 /* body */);
     }
     else if (name)
     {
@@ -1468,135 +1360,6 @@ Node *parse_function_type(Parser *p, Node *ret_type, NodeKind *base_kind_out)
         if (base_kind_out) *base_kind_out = NodeKind_FunctionType;
         return type;
     }
-}
-
-Node *parse_var_decl_list(Parser *p, Node *base_type, Node *first, VarDeclKind kind)
-{
-    if (!base_type)
-    {
-        if (first)
-        {
-            gb_printf_err("\e[31mINTERNAL ERROR:\e[0m No base_type supplied to parse_var_decl_list\n");
-            gb_exit(1);
-        }
-        return parse_var_decl(p, kind);
-    }
-
-    b32 got_first = first != 0;
-    
-    gbArray(Node *) vars;
-    gb_array_init(vars, p->alloc);
-    if (got_first)
-    {
-        gb_array_append(vars, first);
-        if (!allow(Token_Comma, p))
-            return node_var_decl_list(p, vars, kind);
-    }
-    
-    Node *curr_type, *name;
-    do
-    {
-        curr_type = base_type;
-
-        if (!got_first)
-        {
-            Token pointer;
-            while (accept(Token_Mul, p, &pointer))
-                curr_type = node_pointer_type(p, pointer, curr_type);
-            got_first = true;
-        }
-        
-        if (p->curr->kind == Token_OpenParen) // Function pointer
-        {
-            Token open = *p->curr;
-            NodeKind base_kind;
-            Node *node = parse_function_type(p, curr_type, &base_kind);
-            switch (base_kind)
-            {
-            case NodeKind_VarDecl:
-                curr_type = node->VarDecl.type;
-                name = node->VarDecl.name;
-                break;
-            case NodeKind_FunctionType:
-                error(open, "Expected name in function pointer declaration");
-                return &NODE_INVALID;
-            default:
-                error(open, "Expected variable declaration, got a %.*s", LIT(node_strings[node->kind]));
-                return &NODE_INVALID;
-            }
-            gb_free(p->alloc, node);
-        }
-        else
-        {
-            Token pointer;
-            while (accept(Token_Mul, p, &pointer))
-                curr_type = node_pointer_type(p, pointer, curr_type);
-
-            name = parse_ident(p);
-
-            Token open, close;
-            Node *count;
-            while (accept(Token_OpenBracket, p, &open))
-            {
-                count = parse_expression(p);
-                close = require(Token_CloseBracket, p);
-                curr_type = node_array_type(p, curr_type, count, open, close);
-            }
-        }
-        
-        gb_array_append(vars, node_var_decl(p, curr_type, name, kind));
-    } while (allow(Token_Comma, p));
-
-    return node_var_decl_list(p, vars, kind);
-}
-
-Node *parse_var_decl(Parser *p, VarDeclKind kind)
-{
-    Node *type, *name;
-    type = parse_type(p);
-
-    Node *base_type = get_base_type(type);
-
-    if (p->curr->kind == Token_OpenParen) // Function pointer
-    {
-        Token open = *p->curr;
-        NodeKind base_kind;
-        Node *node = parse_function_type(p, type, &base_kind);
-        switch (base_kind)
-        {
-        case NodeKind_VarDecl:
-            type = node->VarDecl.type;
-            name = node->VarDecl.name;
-            break;
-        case NodeKind_FunctionType:
-            error(open, "Expected name in function pointer declaration");
-            return &NODE_INVALID;
-        default:
-            error(open, "Expected variable declaration, got a %.*s", LIT(node_strings[node->kind]));
-            return &NODE_INVALID;
-        }
-        gb_free(p->alloc, node);
-    }
-    else
-    {
-        name = parse_ident(p);
-        /* if (name->Ident.token.loc.line == 61) */
-        /*     raise(SIGINT); */
-    }
-    
-    Token open, close;
-    Node *count;
-    while (accept(Token_OpenBracket, p, &open))
-    {
-        count = parse_expression(p);
-        close = require(Token_CloseBracket, p);
-        type  = node_array_type(p, type, count, open, close);
-    }
-    
-    Node *first = node_var_decl(p, type, name, kind);
-    Node *list = parse_var_decl_list(p, base_type, first, kind);
-
-    return list;
 }
 
 Node *parse_string(Parser *p)
@@ -1644,112 +1407,6 @@ Node *parse_decl_spec(Parser *p)
     return 0;
 }
 
-Node *parse_decl(Parser *p)
-{
-    if (p->curr->kind == Token_declspec)
-        parse_decl_spec(p);
-
-    allow_unordered(p, {Token_static, Token_extern, Token_extension});
-    /* allow(Token_static, p); */
-    /* allow(Token_extern, p); */
-    /* allow(Token_static, p); */
-    b32 is_inline = accept_one_of(p, 0, {Token_inline, Token__inline, Token__inline_, Token__forceinline});
-
-    Node *type, *name;
-    type = parse_type(p);
-
-    Token call_conv;
-    accept_one_of(p, &call_conv, {Token_cdecl, Token_clrcall, Token_stdcall, Token_fastcall, Token_thiscall, Token_vectorcall});
-
-    Token sc;
-    if (accept(Token_Semicolon, p, &sc))
-    {
-        switch (type->kind)
-        {
-        case NodeKind_StructType:
-        case NodeKind_UnionType:
-        case NodeKind_EnumType:
-            return type;
-        default:
-            error(sc, "Expected name after type declaration, got ';'");
-            gb_free(p->alloc, type);
-            return &NODE_INVALID;
-        }
-    }
-
-    b32 is_variable = false;
-    b32 is_function = false;
-    
-    Node *base_type = get_base_type(type); // base type for remaining elements of var list
-    Node *params;
-    if (p->curr->kind == Token_OpenParen) // function pointer
-    {
-        Token open = *p->curr;
-        NodeKind base_kind;
-        Node *node = parse_function_type(p, type, &base_kind);
-        switch (node->kind)
-        {
-        case NodeKind_FunctionDecl:
-            is_function = true;
-            type   = node->FunctionDecl.ret_type;
-            name   = node->FunctionDecl.name;
-            params = node->FunctionDecl.params;
-            break;
-        case NodeKind_VarDecl:
-            is_variable = true;
-            type = node->VarDecl.type;
-            name = node->VarDecl.name;
-            break;
-        case NodeKind_FunctionType:
-            error(open, "Expected name in function pointer declaration");
-            return &NODE_INVALID;
-        default:
-            error(open, "Expected function pointer declaration");
-            return &NODE_INVALID;
-        }
-        gb_free(p->alloc, node);
-    }
-    else
-    {
-        name = parse_ident(p);
-        if (p->curr->kind == Token_OpenParen) // function declaration
-        {
-            is_function = true;
-            params = parse_parameter_list(p);
-        }
-        else
-        {
-            is_variable = true;
-            Token open, close;
-            Node *count;
-            while (accept(Token_OpenBracket, p, &open))
-            {
-                count = parse_expression(p);
-                close = require(Token_CloseBracket, p);
-                type = node_array_type(p, type, count, open, close);
-            }
-        }
-    }
-    
-    Node *body = 0;
-    Node *list = 0;
-    if (is_function && p->curr->kind == Token_OpenBrace)  // function body
-        body = parse_compound_statement(p);
-    else if (is_variable) // variable list
-        list = parse_var_decl_list(p, type, node_var_decl(p, type, name, VarDecl_Variable), VarDecl_Variable);
-
-    if (!(is_function && body))
-        sc = require(Token_Semicolon, p);
-
-    if (is_function)
-        return node_function_decl(p, type, name, params, body, is_inline);
-    else if (is_variable)
-        return list;
-    else
-        error(sc, "Declaration is not variable or function");
-    return &NODE_INVALID;
-}
-
 void parse_file(Parser *p)
 {
     Node *n;
@@ -1758,11 +1415,14 @@ void parse_file(Parser *p)
     {
         switch (p->curr->kind)
         {
+        case Token_Semicolon: // Empty statement
+            advance(p);
+            continue;
         case Token_typedef:
             n = parse_typedef(p);
             break;
         default:
-            n = parse_decl(p);
+            n = parse_decl(p, VarDecl_Variable);
             break;
         }
 
@@ -1820,6 +1480,7 @@ Node *parse_token_run(Parser *p, Node *(*parse_func)(Parser *), Token_Run run)
 
 void parse_defines(Parser *p, gbArray(Define) defines)
 {
+    gb_printf("Parsing defines\n");
     String name;
     Node *value;
     for (int i = 0; i < gb_array_count(defines); i++)
@@ -1828,4 +1489,284 @@ void parse_defines(Parser *p, gbArray(Define) defines)
         value = parse_token_run(p, parse_expression, defines[i].value);
         gb_array_append(p->file.defines, node_define(p, name, value));
     }
+}
+
+void _type_add_child(Node **parent, Node *child)
+{
+    if (!*parent)
+    {
+        *parent = child;
+        return;
+    }
+    Node *prev;
+    Node *curr = *parent;
+    while (curr)
+    {
+        prev = curr;
+
+        switch (curr->kind)
+        {
+        case NodeKind_PointerType:
+            curr = curr->PointerType.type;
+            break;
+        case NodeKind_ArrayType:
+            curr = curr->ArrayType.type;
+            break;
+        case NodeKind_FunctionType:
+            curr = curr->FunctionType.ret_type;
+            break;
+        case NodeKind_ConstType:
+            curr = curr->ConstType.type;
+            break;
+		case NodeKind_BitfieldType:
+			curr = curr->BitfieldType.type;
+			break;
+        default: gb_printf_err("ERROR: Cannot add type specifier to %.*s\n", LIT(node_strings[curr->kind]));
+        }
+    }
+
+    switch (prev->kind)
+    {
+    case NodeKind_PointerType:
+        prev->PointerType.type = child;
+        break;
+    case NodeKind_ArrayType:
+        prev->ArrayType.type = child;
+        break;
+    case NodeKind_FunctionType:
+        prev->FunctionType.ret_type = child;
+        break;
+    case NodeKind_ConstType:
+        prev->ConstType.type = child;
+        break;
+	case NodeKind_BitfieldType:
+		prev->BitfieldType.type = child;
+    default: break;
+    }
+}
+Node *parse_type_spec(Parser *p, Node **var_name);
+Node *parse_type_operand(Parser *p, Node **var_name)
+{
+    switch (p->curr->kind)
+    {
+    case Token_OpenParen: {
+        require(Token_OpenParen, p);
+        Node* node = parse_type_spec(p, var_name);
+        require(Token_CloseParen, p);
+        return node;
+    }
+
+    case Token_Ident:
+        *var_name = parse_ident(p);
+        break;
+    default: break;
+    }
+
+    return 0;
+}
+Node *parse_postfix_type(Parser *p, Node **var_name)
+{
+    Node *type = parse_type_operand(p, var_name);
+
+    b32 loop = true;
+    while (loop)
+    {
+        switch (p->curr->kind)
+        {
+        case Token_OpenBracket: {
+            Token open = require(Token_OpenBracket, p);
+            Node* count = parse_expression(p);
+            Token close = require(Token_CloseBracket, p);
+            _type_add_child(&type, node_array_type(p, 0, count, open, close));
+        } break;
+        case Token_OpenParen: {
+            Node* params = parse_parameter_list(p);
+            _type_add_child(&type, node_function_type(p, 0, params));
+        } break;
+        case Token_Colon: {
+            require(Token_Colon, p);
+            Node *bit_count = parse_expression(p);
+            _type_add_child(&type, node_bitfield_type(p, 0, bit_count));
+        } break;
+        default: loop = false; break;
+        }
+    }
+    return type;
+}
+Node *parse_type_spec(Parser *p, Node **var_name)
+{
+    Node *node = 0;
+    Token token;
+    switch (p->curr->kind)
+    {
+    case Token_unaligned:
+        advance(p);
+    case Token_Mul:
+        token = require(Token_Mul, p);
+        node = parse_type_spec(p, var_name);
+        _type_add_child(&node, node_pointer_type(p, token, 0));
+        return node;
+
+    case Token_const:
+        token = require(Token_const, p);
+        node = parse_type_spec(p,var_name);
+        _type_add_child(&node, node_const_type(p, token, 0));
+        return node;
+
+    // Ignore all of these
+    case Token_static:
+    case Token_extern:
+    case Token_extension:
+
+    case Token_volatile:
+    case Token_restrict:
+
+    case Token_inline:
+    case Token__inline:
+    case Token__inline_:
+    case Token__forceinline:
+
+    case Token_cdecl:
+    case Token_clrcall:
+    case Token_stdcall:
+    case Token_fastcall:
+    case Token_thiscall:
+    case Token_vectorcall:
+        advance(p);
+        return parse_type_spec(p, var_name);
+        break;
+
+    case Token_declspec:
+        parse_decl_spec(p);
+        return parse_type_spec(p, var_name);
+
+
+    default: break;
+    }
+
+    return parse_postfix_type(p, var_name);
+}
+Node *parse_type(Parser *p, Node **var_name)
+{
+    u8 res = allow_unordered(p, {Token_volatile, Token_const, Token_register, Token_extension});
+    b32 is_volatile  = res & GB_BIT(0);
+    b32 is_const     = res & GB_BIT(1);
+    b32 is_register  = res & GB_BIT(2);
+    b32 is_extension = res & GB_BIT(3);
+
+    Node *base_type;
+    switch (p->curr->kind)
+    {
+    case Token_struct:
+    case Token_union:
+        base_type = parse_record(p);
+        break;
+    case Token_enum:
+        base_type = parse_enum(p);
+        break;
+    case Token_float:
+    case Token_double:
+
+    case Token_int:
+    case Token_char:
+    case Token_signed:
+    case Token_unsigned:
+    case Token_short:
+    case Token_long:
+    case Token__int8:
+    case Token__int16:
+    case Token__int32:
+    case Token__int64:
+        base_type = parse_integer_or_float_type(p);
+        break;
+    case Token_Ident:
+        base_type = parse_ident(p);
+        break;
+    default:
+        error(*p->curr, "Invalid token '%.*s' in type", LIT(TokenKind_Strings[p->curr->kind]));
+        break;
+    }
+
+    Node *type = parse_type_spec(p, var_name);
+    _type_add_child(&type, base_type);
+    return type;
+}
+
+Node *parse_decl(Parser *p, VarDeclKind var_kind)
+{
+
+    while (p->curr->kind == Token_declspec)
+        parse_decl_spec(p);
+
+    allow_unordered(p, {Token_static, Token_extern, Token_extension});
+    b32 is_inline = accept_one_of(p, 0, {Token_inline, Token__inline, Token__inline_, Token__forceinline});
+    
+    while (p->curr->kind == Token_declspec)
+        parse_decl_spec(p);
+
+    Node *name = 0;
+    Node *type =  parse_type(p, &name);
+
+    if (!name)
+    {
+        // if (var_kind == VarDecl_Field && allow(Token_Colon, p))
+        // {
+        //     Node *bit_count = parse_expression(p);
+        //     type = node_bitfield_type(p, type, bit_count);
+        // }
+
+        Token sc = require(Token_Semicolon, p);
+
+        switch (type->kind)
+        {
+        case NodeKind_StructType:
+        case NodeKind_UnionType:
+        case NodeKind_EnumType:
+            if (var_kind == VarDecl_Field)
+                return node_var_decl(p, type, name, VarDecl_AnonRecord);
+            else
+                return type;
+        case NodeKind_BitfieldType:
+            return node_var_decl(p, type, name, VarDecl_AnonBitfield);
+        default:
+            error(sc, "Expected name after %.*s, got ';'", LIT(node_strings[type->kind]));
+            return &NODE_INVALID;
+        }
+    }
+
+    if (type->kind == NodeKind_FunctionType)
+    {
+        Node *body = 0;
+        if (p->curr->kind == Token_OpenBrace)
+            body = parse_compound_statement(p);
+        else
+            require(Token_Semicolon, p);
+
+        if (var_kind == VarDecl_Typedef)
+            return node_var_decl(p, type, name, var_kind);
+        else
+            return node_function_decl(p, type, name, body);
+    }
+
+    gbArray(Node *) vars;
+    gb_array_init(vars, p->alloc);
+    gb_array_append(vars, node_var_decl(p, type, name, var_kind));    
+    Node *base_type = get_base_type(type);
+    while(allow(Token_Comma, p))
+    {
+        Node *type = parse_type_spec(p, &name);
+        _type_add_child(&type, base_type);
+        gb_array_append(vars, node_var_decl(p, type, name, var_kind));
+    }
+
+    // if (var_kind == VarDecl_Field && allow(Token_Colon, p))
+    // {
+    //     Node *bit_count = parse_expression(p);
+    //     for (int i = 0; i < gb_array_count(vars); i++)
+    //         vars[i]->VarDecl.type = node_bitfield_type(p, vars[i]->VarDecl.type, bit_count);
+    // }
+    require(Token_Semicolon, p);
+
+    Node* var_list = node_var_decl_list(p, vars, var_kind);
+    return var_list;
 }

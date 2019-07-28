@@ -7,13 +7,6 @@ set exe_name=bind.exe
 set release_mode=1
 set compiler_flags= -nologo -Oi -Gm- -MP -GS- -EHsc- -Z7
 
-
-rem if %release_mode% EQU 0 ( rem Debug
-rem 	set compiler_flags=%compiler_flags% -Od -MDd -Z7
-rem ) else ( rem Release
-rem 	set compiler_flags=%compiler_flags% -O2 -MT -Z7 -DNO_ARRAY_BOUNDS_CHECK
-rem )
-
 set compiler_warnings= ^
 	-W4 ^
 	-wd4100 -wd4101 -wd4127 -wd4189 ^
@@ -25,17 +18,11 @@ set compiler_includes=-Iinclude -Ilib
 set libs= ^
 	kernel32.lib find_vs.lib
 
-set linker_flags= -incremental:no -opt:ref -subsystem:console
-
-if %release_mode% EQU 0 ( rem Debug
-	set linker_flags=%linker_flags% -debug
-) else ( rem Release
-	set linker_flags=%linker_flags% -debug
-)
-
+set linker_flags= -incremental:no -opt:ref -subsystem:console -debug
 set compiler_settings=%compiler_includes% %compiler_flags% %compiler_warnings%
 set linker_settings=%libs% %linker_flags%
 
+del %exe_name% > NUL 2> NUL
 del *.pdb > NUL 2> NUL
 del *.ilk > NUL 2> NUL
 

@@ -224,6 +224,11 @@ void pp_parse_macro_args(Preprocessor *pp, gbArray(Token_Run) *args, b32 is_para
             }
         }
         curr.end = &peek_at(pp, -1);
+        
+        // Remove Backslashes
+        if (curr.start->kind == Token_BackSlash) curr.start++;
+        if (curr.end->kind   == Token_BackSlash) curr.end--;
+
         if (is_params && curr.start == curr.end && curr.start[0].kind == Token_Ellipsis)
             curr = make_token_run("__VA_ARGS__", Token_Ident);
         if (!(curr.start[-1].kind == Token_OpenParen
@@ -331,6 +336,13 @@ void pp_write_token_run(Preprocessor *pp, Token_Run to_write)
             pp->write_column++;
             tok.kind = Token_String;
             pp->stringify_next = false;
+        }
+
+        if (pp->context->in_macro || pp->context->in_include)
+        {
+            tok.from_loc.line   = pp->context->from_line;
+            tok.from_loc.column = pp->context->from_column;
+            tok.from_loc.file   = pp->context->filename;
         }
 
         gb_array_append(pp->output, tok);
@@ -740,6 +752,7 @@ void directive_define(Preprocessor *pp)
     if (!def_token.str.start)
         def_token = expect_token(&pp->context->tokens, Token_Ident);
     String def_name = def_token.str;
+	isize def_line = def_token.loc.line;
 
     gbArray(Token_Run) params = 0;
     if (peek(pp).kind == Token_OpenParen &&
@@ -747,8 +760,8 @@ void directive_define(Preprocessor *pp)
     {
         gb_array_init(params, pp->allocator);
         pp_parse_macro_args(pp, &params, true);
+		def_line = peek_at(pp, -1).loc.line;
     }
-    isize def_line = def_token.loc.line;
     Token_Run value = {0};
     if (def_line == peek(pp).loc.line)
     {

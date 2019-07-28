@@ -16,6 +16,8 @@ typedef enum VarDeclKind
     VarDecl_NamelessParameter,
     VarDecl_VaArgs,
     VarDecl_AnonRecord,
+    VarDecl_AnonBitfield,
+    VarDecl_Typedef,
 } VarDeclKind;
     
 #define NODE_KINDS                                                      \
@@ -165,11 +167,9 @@ NODE_KIND(_DeclBegin, "", b32)                                          \
         gbArray(Node *) fields;                                         \
     })                                                                  \
     NODE_KIND(FunctionDecl, "function declaration", struct {            \
-            Node *ret_type;                                             \
+            Node *type;                                                 \
             Node *name;                                                 \
-            Node *params;                                               \
             Node *body;                                                 \
-            b32 inlined;                                                \
     })                                                                  \
 NODE_KIND(_DeclEnd, "", b32)                                            \
     NODE_KIND(VaArgs, "variadic argument", struct {                     \
@@ -177,6 +177,9 @@ NODE_KIND(_DeclEnd, "", b32)                                            \
     })                                                                  \
 NODE_KIND(_TypeBegin, "", b32)                                          \
     NODE_KIND(IntegerType, "integer type", struct {                     \
+            gbArray(Token) specifiers;                                  \
+    })                                                                  \
+    NODE_KIND(FloatType, "float type", struct {                         \
             gbArray(Token) specifiers;                                  \
     })                                                                  \
     NODE_KIND(PointerType, "pointer type", struct {                     \
@@ -210,7 +213,10 @@ NODE_KIND(_TypeBegin, "", b32)                                          \
     NODE_KIND(FunctionType, "function type", struct {                   \
             Node *ret_type;                                             \
             Node *params;                                               \
-            Token open, close, pointer;                                 \
+    })                                                                  \
+    NODE_KIND(BitfieldType, "bitfield type", struct {                   \
+            Node *type;                                                 \
+            Node *size;                                                 \
     })                                                                  \
 NODE_KIND(_TypeEnd, "", b32)
 
@@ -271,6 +277,7 @@ typedef struct TypeInfo
     int stars;
     b32 is_const;
     b32 is_array;
+    b32 is_bitfield;
 } TypeInfo;
 TypeInfo get_type_info(Node *type, gbAllocator a);
 

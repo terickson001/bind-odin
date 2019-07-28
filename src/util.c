@@ -242,6 +242,40 @@ String to_camel_case(String str, gbAllocator allocator)
     return convert_case(str, Case_CAMEL, allocator);
 }
 
+String float_type_str(TypeInfo *info)
+{
+    gbArray(Token) specs = info->base_type->FloatType.specifiers;
+
+    int size = -1;
+    int shift = 0;
+
+    for (int i = 0; i < gb_array_count(specs); i++)
+    {
+        switch (specs[i].kind)
+        {
+            case Token_float:  size = 32; break;
+            case Token_double: size = 64; break;
+
+            case Token_long:   shift++;   break;
+            default:
+                error(specs[i], "Invalid type specifier '%.*s' in floating point type", LIT(TokenKind_Strings[specs[i].kind]));
+        }
+    }
+
+    if (size == -1 || shift > 1 || (size == 32 && shift))
+        error(specs[0], "Invalid floating point type");
+
+    size <<= shift;
+
+    int len = 3 + (size==128);
+    String ret;
+    ret.start = gb_alloc(gb_heap_allocator(), len+1);
+    gb_snprintf(ret.start, len, "f%d", size);
+    ret.len = len;
+
+    return ret;
+}
+
 String integer_type_str(TypeInfo *info)
 {
     gbArray(Token) specs = info->base_type->IntegerType.specifiers;
@@ -267,24 +301,29 @@ String integer_type_str(TypeInfo *info)
         case Token__int16:   size = 16;     break;
         case Token__int32:   size = 32;     break;
         case Token__int64:   size = 64;     break;
+        case Token_int:                     break;
 
-        default: break;
+        default:
+            error(specs[i], "Invalid type specifier '%.*s' in integer type", LIT(TokenKind_Strings[specs[i].kind]));
         }
     }
 
+    if (is_signed == -1) is_signed = 1;
+    int len = 1;
+    switch (size)
+    {
+    case 128: size = 64;
+    case 64:
+    case 32:
+    case 16: len++;
+    case 8:  len++; break;
+    default: error(specs[0], "Invalid integer type");
+    }
+
     String ret;
-    if (is_signed != 1 && size == 8 && info->stars > 0)
-    {
-        info->stars--;
-        ret.start = gb_alloc_str(gb_heap_allocator(), "cstring");
-        ret.len = 7;
-    }
-    else
-    {
-        if (is_signed == -1) is_signed = 1;
-        ret.start = gb_alloc(gb_heap_allocator(), 5);
-        ret.len = gb_snprintf(ret.start, 5, "%c%d", is_signed?'i':'u', size);
-    }
+    ret.start = gb_alloc(gb_heap_allocator(), len+1);
+    gb_snprintf(ret.start, len, "%c%d", is_signed?'i':'u', size);
+    ret.len = len;
 
     return ret;
 }
@@ -305,24 +344,6 @@ String convert_type(TypeInfo *info, map_t rename_map, BindConfig *conf, gbAlloca
             result = "uint";
         else if (cstring_cmp(ident, "PWORD") == 0)
             result = "^u16";
-        else if (cstring_cmp(ident, "float") == 0)
-            result = "f32";
-        else if (cstring_cmp(ident, "double") == 0)
-            result = "f64";
-        else if (cstring_cmp(ident, "long double") == 0)
-            result = "f64";
-        else if (cstring_cmp(ident, "void") == 0)
-        {
-            if (info->stars > 0)
-            {
-                info->stars--;
-                result = "rawptr";
-            }
-            else
-            {
-                result = ""; // Void return type, or empty parameters
-            }
-        }
         else
         {
             String renamed = rename_ident(ident, RENAME_TYPE, true, rename_map, conf, allocator);
@@ -331,8 +352,11 @@ String convert_type(TypeInfo *info, map_t rename_map, BindConfig *conf, gbAlloca
     }
     else if (info->base_type->kind == NodeKind_IntegerType)
     {
-
         return integer_type_str(info);
+    }
+    else if (info->base_type->kind == NodeKind_FloatType)
+    {
+        return float_type_str(info);
     }
     else if (info->base_type->kind == NodeKind_StructType
           || info->base_type->kind == NodeKind_UnionType

@@ -90,6 +90,8 @@ TOKEN_KIND(Token__KeywordBegin, "_KeywordBegin"),        \
         TOKEN_KIND(Token__int16,       "__int16"),       \
         TOKEN_KIND(Token__int32,       "__int32"),       \
         TOKEN_KIND(Token__int64,       "__int64"),       \
+        TOKEN_KIND(Token_float,        "float"),         \
+        TOKEN_KIND(Token_double,       "double"),        \
         TOKEN_KIND(Token_typedef,      "typedef"),       \
         TOKEN_KIND(Token_if,           "if"),            \
         TOKEN_KIND(Token_else,         "else"),          \
@@ -165,6 +167,7 @@ typedef struct Token
     String str;
     File_Location loc;
     File_Location pp_loc;
+    File_Location from_loc;
 } Token;
 
 typedef struct Token_Run

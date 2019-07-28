@@ -41,7 +41,7 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
             else
                 gb_printf_err("\e[31mERROR:\e[0m Failed to open file \'%.*s\'\n", LIT(task.input_filename));
             gb_free(a, filename);
-            exit(1);
+            gb_exit(1);
         }
         gb_free(a, filename);
         
