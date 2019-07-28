@@ -1202,8 +1202,8 @@ void pp_print(Preprocessor *pp, char *filename)
                 num_spaces = token.pp_loc.column - (prev_token.pp_loc.column+prev_token.str.len);
         }
 
-        char *newlines = gb_alloc(a, newline+1);
-        gb_memset(newlines, '\n', newline);
+        // char *newlines = gb_alloc(a, newline+1);
+        // gb_memset(newlines, '\n', newline);
 
         char *spaces = gb_alloc(a, num_spaces+1);
         gb_memset(spaces, ' ', num_spaces);
@@ -1235,7 +1235,7 @@ void pp_print(Preprocessor *pp, char *filename)
                    LIT(token_string),
                    is_string?'"':is_char?'\'':0);
             
-        gb_free(a, newlines);
+        // gb_free(a, newlines);
         gb_free(a, spaces);
         prev_token = token;
     }

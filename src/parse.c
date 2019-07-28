@@ -992,128 +992,6 @@ Node *parse_compound_statement(Parser *p)
     return make_node(p, CompoundStmt);
 }
 
-/*
-Node *parse_var_decl_names(Parser *p, Node *base_type)
-{
-    
-    gbArray(Node *) vars;
-    Node *ident;
-
-    gb_array_init(vars, p->alloc);
-
-    Node *curr_type;
-    do
-    {
-        curr_type = base_type;
-
-        Node *fp;
-        if (try(parse_function_type__variable, p, &fp))
-        {
-            Node *temp = fp;
-            while (temp->kind != NodeKind_FunctionType)
-            {
-                switch (temp->kind)
-                {
-                case NodeKind_PointerType: temp = temp->PointerType.type; break;
-                case NodeKind_ArrayType:   temp = temp->ArrayType.type;   break;
-                case NodeKind_VarDecl:     temp = temp->VarDecl.type;     break;
-                default: break;
-                }
-            }
-            temp->FunctionType.ret_type = curr_type;
-            gb_array_append(vars, fp);
-        }
-        else
-        {
-            Token pointer;
-            while (expect(Token_Mul, p, &pointer))
-                curr_type = node_pointer_type(p, pointer, curr_type);
-
-            Node *name;
-            if (try(parse_ident, p, &name));
-            else return &NODE_INVALID;
-            
-            Token open, close;
-            Node *count;
-            while (expect(Token_OpenBracket, p, &open))
-            {
-                try(parse_expression, p, &count);
-                if (expect(Token_CloseBracket, p, &close));
-                else
-                {
-                    syntax_error(open, "Invalid count in array type declaration");
-                    break;
-                }
-                curr_type = node_array_type(p, curr_type, count, open, close);
-            }
-            gb_array_append(vars, node_var_decl(p, curr_type, name, VarDecl_Variable)); 
-        }
-    } while (allow(Token_Comma, p));
-
-    return node_var_decl_list(p, vars, VarDecl_Variable);
-}
-*/
-
-/*
-Node *parse_var_decl(Parser *p)
-{
-    allow(Token_extern, p);
-    
-    Node *base_type;
-    Node *ident;
-
-    if (try(parse_type, p, &base_type));
-    else return &NODE_INVALID;
-
-    Node *vars = parse_var_decl_names(p, base_type);
-    
-    return vars;
-}
-*/
-
-/*
-Node *parse_statement(Parser *p)
-{
-    Node *res;
-    if (try(parse_var_decl, p, &res))
-        return res;
-        
-    switch (p->curr.kind)
-    {
-    case Token_if:        return parse_if(p);
-    case Token_for:       return parse_for(p);
-    case Token_while:     return parse_while(p);
-    case Token_return:    return parse_return(p);
-    case Token_switch:    return parse_switch(p);
-        
-    case Token_continue:
-    case Token_break:
-        return parse_branch(p);
-        
-    case Token_Semicolon: return node_empty_statement(p, require(Token_Semicolon, p));
-    case Token_OpenBrace: return parse_block(p);
-    default: break;
-    }
-           
-    if (!type)
-        return &NODE_INVALID;
-           
-}
-*/
-
-/*
-Node *parse_anonymous_record(Parser *p)
-{
-    Node *record;
-
-    if      (try(parse_record, p, &record));
-    else if (try(parse_enum,   p, &record));
-    else return &NODE_INVALID;
-
-    return node_var_decl(p, record, 0, VarDecl_AnonRecord);
-}
-*/
-
 Node *parse_record_fields(Parser *p)
 {
     Token open, close;
@@ -1276,42 +1154,6 @@ Node *parse_enum(Parser *p)
     return node_enum_type(p, t, name, fields);
 }
 
-/*
-Node *parse_function_decl(Parser *p)
-{
-    allow(Token_extern, p);
-    b32 inlined = allow(Token_inline, p);
-    
-    Node *ret_type, *name, *params, *body;
-    ret_type = parse_type;
-    if (try(parse_type, p, &ret_type));
-    else return &NODE_INVALID;
-
-    Node *func;
-    if (try(parse_function_type__function, p, &func))
-    {
-        func->FunctionDecl.ret_type->FunctionType.ret_type = ret_type;
-        func->FunctionDecl.inlined = inlined;
-    }
-    else if (try(parse_ident,          p, &name)
-     &&      try(parse_parameter_list, p, &params))
-    {
-        func = node_function_decl(p, ret_type, name, params, 0, inlined);
-    }
-    else return &NODE_INVALID;
-
-    Node *attrs;
-    try_opt(parse_attributes, p, &attrs);
-    
-    if      (try(parse_compound_statement, p, &body));
-    else if (allow(Token_Semicolon, p));
-    else return &NODE_INVALID;
-
-    func->FunctionDecl.body = body;
-    return func;
-}
-*/
-
 Node *parse_parameter(Parser *p)
 {
     Node *type;
@@ -1392,61 +1234,6 @@ Node *parse_parameter_list(Parser *p)
 //     -- Function pointer 'foo' with FP return type, with FP return type [This one's a little much]
 // void *(*foo(float, void *(*)(double)))(int, char)
 //     -- Function 'foo' with FP param and return
-
-// NOTE: returns a FunctionDecl with a FunctionType as the return type
-//       e.g.: (*name)(fp_params, ...)
-/* Node *parse_function_type__function(Parser *p) */
-/* { */
-/*     Node *fp_params; */
-/*     Token fp_open, fp_close, fp_pointer; */
-    
-/*     Node *name, *params; */
-
-/*     if (expect(Token_OpenParen,      p, &fp_open) */
-/*      && expect(Token_Mul,            p, &fp_pointer) */
-/*      &&    try(parse_ident,          p, &name) */
-/*      &&    try(parse_parameter_list, p, &params) */
-/*      && expect(Token_CloseParen,     p, &fp_close) */
-/*      &&    try(parse_parameter_list, p, &fp_params)); */
-/*     else return &NODE_INVALID; */
-
-/*     Node *fp = node_function_type(p, 0 /\* ret_type *\/, fp_params, fp_open, fp_close, fp_pointer); */
-/*     return node_function_decl(p, fp, name, params, 0 /\* body *\/, false /\* inlined *\/); */
-/* } */
-
-/* // NOTE: returns a VarDecl with a FunctionType as the type */
-/* //       e.g.: (*name(params, ...))(fp_params, ...) */
-/* Node *parse_function_type__variable(Parser *p) */
-/* { */
-/*     Node *fp_params; */
-/*     Token fp_open, fp_close, fp_pointer; */
-
-/*     Node *name; */
-
-/*     if (expect(Token_OpenParen,      p, &fp_open) */
-/*      && expect(Token_Mul,            p, &fp_pointer) */
-/*      &&    try(parse_ident,          p, &name) */
-/*      && expect(Token_CloseParen,     p, &fp_close) */
-/*      &&    try(parse_parameter_list, p, &fp_params)); */
-/*     else return &NODE_INVALID; */
-
-/*     Node *fp = node_function_type(p, 0 /\* ret_type *\/, fp_params, fp_open, fp_close, fp_pointer); */
-/*     return node_var_decl(p, fp, name, VarDecl_Variable); */
-/* } */
-
-/* Node *parse_function_type(Parser *p) */
-/* { */
-/*     Node *params; */
-/*     Token open, close, pointer; */
-    
-/*     if (expect(Token_OpenParen,      p, &open) */
-/*      && expect(Token_Mul,            p, &pointer) */
-/*      && expect(Token_CloseParen,     p, &close) */
-/*      &&    try(parse_parameter_list, p, &params)); */
-/*     else return &NODE_INVALID; */
-
-/*     return node_function_type(p, 0 /\* ret_type *\/, params, open, close, pointer); */
-/* } */
 
 Node *parse_integer_type(Parser *p)
 {
@@ -1872,7 +1659,7 @@ Node *parse_decl(Parser *p)
     type = parse_type(p);
 
     Token call_conv;
-    accept_one_of(p, &call_conv, {Token_cdecl, Token_stdcall});
+    accept_one_of(p, &call_conv, {Token_cdecl, Token_clrcall, Token_stdcall, Token_fastcall, Token_thiscall, Token_vectorcall});
 
     Token sc;
     if (accept(Token_Semicolon, p, &sc))

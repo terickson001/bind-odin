@@ -122,7 +122,11 @@ TOKEN_KIND(Token__KeywordBegin, "_KeywordBegin"),        \
         TOKEN_KIND(Token_asm,          "__asm__"),       \
         TOKEN_KIND(Token_pragma,       "__pragma"),      \
         TOKEN_KIND(Token_cdecl,        "__cdecl"),       \
+        TOKEN_KIND(Token_clrcall,      "__clrcall"),     \
         TOKEN_KIND(Token_stdcall,      "__stdcall"),     \
+        TOKEN_KIND(Token_fastcall,     "__fastcall"),    \
+        TOKEN_KIND(Token_thiscall,     "__thiscall"),    \
+        TOKEN_KIND(Token_vectorcall,   "__vectorcall"),  \
         TOKEN_KIND(Token_declspec,     "__declspec"),    \
         TOKEN_KIND(Token_unaligned,    "__unaligned"),   \
 TOKEN_KIND(Token__KeywordEnd, "_KeywordEnd"),
