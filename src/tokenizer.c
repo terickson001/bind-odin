@@ -55,7 +55,9 @@ Token tokenize_number(Tokenizer *t)
     token.kind = Token_Integer;
     token.loc.line = t->line;
     token.loc.column = token.str.start - t->line_start;
-
+    
+    token.pp_loc = token.loc;
+    
     int base = 10;
     if (t->curr[1] == 'x' || t->curr[1] == 'X')
     {

@@ -321,13 +321,13 @@ void pp_write_token_run(Preprocessor *pp, Token_Run to_write)
             pp->write_column = col_diff;
         else
             pp->write_column += col_diff;
-        tok.loc.line   = pp->write_line;
-        tok.loc.column = pp->write_column;
+        tok.pp_loc.line   = pp->write_line;
+        tok.pp_loc.column = pp->write_column;
 
         if (pp->stringify_next ||
             (pp->context->in_macro && pp->context->stringify))
         {
-            tok.loc.column++;
+            tok.pp_loc.column++;
             pp->write_column++;
             tok.kind = Token_String;
             pp->stringify_next = false;
@@ -1197,9 +1197,9 @@ void pp_print(Preprocessor *pp, char *filename)
         i32 num_spaces = 0;
         if (i > 0)
         {
-            newline = token.loc.line - prev_token.loc.line;
+            newline = token.pp_loc.line - prev_token.pp_loc.line;
             if (!newline)
-                num_spaces = token.loc.column - (prev_token.loc.column+prev_token.str.len);
+                num_spaces = token.pp_loc.column - (prev_token.pp_loc.column+prev_token.str.len);
         }
 
         char *newlines = gb_alloc(a, newline+1);
@@ -1209,10 +1209,10 @@ void pp_print(Preprocessor *pp, char *filename)
         gb_memset(spaces, ' ', num_spaces);
             
         char *indentation = 0;
-        if (newline && token.loc.column > 0)
+        if (newline && token.pp_loc.column > 0)
         {
-            indentation = gb_alloc(a, token.loc.column+1);
-            gb_memset(indentation, ' ', token.loc.column);
+            indentation = gb_alloc(a, token.pp_loc.column+1);
+            gb_memset(indentation, ' ', token.pp_loc.column);
         }
 
         b32 is_string = token.kind == Token_String;
