@@ -562,16 +562,18 @@ void print_record(Printer p, Node *node, int indent, b32 top_level, b32 indent_f
         error(node->StructType.token, "No name given for record at file-scope");
     }
 
-    gb_fprintf(p.out_file, "struct");
-    if (node->StructType.token.kind == Token_union)
-        gb_fprintf(p.out_file, " #raw_union");
 
+
+       gb_fprintf(p.out_file, "struct");
+        if (node->StructType.token.kind == Token_union)
+            gb_fprintf(p.out_file, " #raw_union");
 
     gb_fprintf(p.out_file, " {");
     if (node->StructType.fields)
     {
+        gb_fprintf(p.out_file, "\n");
+
         gbArray(Node *) fields = node->StructType.fields->VarDeclList.list;
-        
         int field_padding = 0;
         for (int i = 0; i < gb_array_count(fields); i++)
         {
@@ -580,11 +582,10 @@ void print_record(Printer p, Node *node, int indent, b32 top_level, b32 indent_f
             field_padding = gb_max(field_padding, rename_temp.len);
         }
 
-        gb_fprintf(p.out_file, "\n");
         for (int i = 0; i < gb_array_count(fields); i++)
         {
-            print_variable(p, fields[i], indent+1, false, field_padding);
-            gb_fprintf(p.out_file, ",\n");
+			print_variable(p, fields[i], indent+1, false, field_padding);
+			gb_fprintf(p.out_file, ",\n");
         }
     }
     

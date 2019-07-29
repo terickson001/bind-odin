@@ -71,9 +71,49 @@ void register_possible_opaque_record(Resolver *r, Node *tpdef)
         hashmap_put(r->opaque_types, info.base_type->StructType.name->Ident.token.str, tpdef);
 }
 
-void register_record_type(Resolver *r, Node *record)
+b32 _record_has_bitfield(Resolver *r, Node *record)
 {
+    if (record->kind == NodeKind_EnumType || !record->StructType.fields)
+        return false;
 
+    gbArray(Node *) fields = record->StructType.fields->VarDeclList.list;
+    for (int i = 0; i < gb_array_count(fields); i++)
+    {
+        if ((fields[i]->VarDecl.type->kind == NodeKind_StructType
+          || fields[i]->VarDecl.type->kind == NodeKind_UnionType)
+         && _record_has_bitfield(r, fields[i]->VarDecl.type))
+            return true;
+        else if (fields[i]->VarDecl.type->kind == NodeKind_BitfieldType)
+            return true;
+    }
+    return false;
+}
+
+void remove_bit_field_type(Resolver *r, Node *record)
+{
+    if (_record_has_bitfield(r, record))
+    {
+        record->no_print = true;
+        gb_printf("NOTE: Could not bind record '%.*s', because it contains a bitfield\n", LIT(record->StructType.name->Ident.token.str));
+    }
+}
+
+void remove_typedef_bit_field_type(Resolver *r, Node *tpdef)
+{
+    for (int i = 0; i < gb_array_count(tpdef->Typedef.var_list->VarDeclList.list); i++)
+    {
+        Node *type = tpdef->Typedef.var_list->VarDeclList.list[i]->VarDecl.type;
+        String name = tpdef->Typedef.var_list->VarDeclList.list[i]->VarDecl.name->Ident.token.str;
+
+        if ((type->kind == NodeKind_StructType
+          || type->kind == NodeKind_UnionType)
+         && _record_has_bitfield(r, type))
+        {
+            tpdef->no_print = true;
+            gb_printf("NOTE: Could not bind record '%.*s', because it contains a bitfield\n", LIT(name));
+            break;
+        }
+    }
 }
 
 void register_forward_declaration(Resolver *r, Node *record)
@@ -102,12 +142,14 @@ void resolve_package(Resolver *r)
         {
             register_typedef_record_type(r, file.tpdefs[i]);
             register_possible_opaque_record(r, file.tpdefs[i]);
+            remove_typedef_bit_field_type(r, file.tpdefs[i]);
         }
 
         b32 redefined;
         for (int i = 0; i < gb_array_count(file.records); i++)
         {
             register_forward_declaration(r, file.records[i]);
+            remove_bit_field_type(r, file.records[i]);
         }
     }
 

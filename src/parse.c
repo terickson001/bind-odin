@@ -1487,7 +1487,6 @@ Node *parse_token_run(Parser *p, Node *(*parse_func)(Parser *), Token_Run run)
 
 void parse_defines(Parser *p, gbArray(Define) defines)
 {
-    gb_printf("Parsing defines\n");
     String name;
     Node *value;
     for (int i = 0; i < gb_array_count(defines); i++)
