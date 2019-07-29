@@ -135,9 +135,8 @@ String path_base_name(char *filename)
 String dir_from_path(String path)
 {
     String dir = {path.start, 0};
-    
     char *slash = path.start+path.len-1;
-    while (*slash != '/' && slash > dir.start)
+    while (*slash != GB_PATH_SEPARATOR && slash > dir.start)
         slash--;
     dir.len = slash-dir.start+1;
     

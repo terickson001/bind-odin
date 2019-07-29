@@ -371,6 +371,8 @@ void print_type(Printer p, Node *node, int indent)
             }
         } break;
         case NodeKind_IntegerType: {
+            if (!p.conf->use_cstring)
+                break;
             TypeInfo ti = get_type_info(node->PointerType.type, p.allocator);
             String str = integer_type_str(&ti);
             if (cstring_cmp(str, "u8") == 0)

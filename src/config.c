@@ -119,17 +119,7 @@ String read_line(Reader *r)
     return ret;
 }
 
-b32 read_bool(Reader *r)
-{
-    String ident = read_ident(r);
-    if (cstring_cmp(ident, "true") == 0)
-        return true;
-    else if (cstring_cmp(ident, "false") == 0)
-        return false;
-    else
-        reader_error(r, "'%.*s' is not a valid boolean value", LIT(ident));
-    return false;
-}
+
 
 String read_ident(Reader *r)
 {
@@ -159,6 +149,18 @@ String read_header(Reader *r)
 b32 is_header(Reader *r)
 {
     return gb_strncmp(r->data, "::/", 3) == 0;
+}
+
+b32 read_bool(Reader *r)
+{
+    String ident = read_ident(r);
+    if (cstring_cmp(ident, "true") == 0)
+        return true;
+    else if (cstring_cmp(ident, "false") == 0)
+        return false;
+    else
+        reader_error(r, "'%.*s' is not a valid boolean value", LIT(ident));
+    return false;
 }
 
 String read_string(Reader *r)
@@ -540,6 +542,7 @@ void print_config(Config *conf)
     if (bind.proc_case)   gb_printf("proc-case  = %s\n", get_case_string(bind.proc_case));
     if (bind.const_case)  gb_printf("const-case = %s\n", get_case_string(bind.const_case));
 
+    gb_printf("use-cstring = %s\n", bind.use_cstring?"true":"false");
     if (bind.ordering) gb_printf("ordering = %s\n", bind.ordering == Ordering_Sorted ? "SORTED" : "SOURCE");
     
     if (bind.custom_ordering)

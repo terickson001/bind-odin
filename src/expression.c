@@ -353,7 +353,7 @@ Expr *pp_parse_ternary_expr(Token_Run *expr, Preprocessor *pp, Expr *cond)
 {
 	Expr *then, *els_;
 	then = _pp_parse_expression(expr, pp);
-	Token colon = advance_expr(expr, Token_Colon);
+	Token colon = advance_expr(expr);
 	els_ = _pp_parse_expression(expr, pp);
 
 	if (colon.kind != Token_Colon)

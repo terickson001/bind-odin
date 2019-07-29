@@ -317,13 +317,13 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
         gb_snprintf(tasks[i].output_filename.start, base_length+5,
                     "%.*s%.*s%c%.*s.odin", LIT(root_dir), LIT(sub_dir), sub_dir.start?'-':0, LIT(base_name));
 
-        /*
+        
         gb_printf("TASK #%d:\n  root: %.*s\n  input: %.*s\n  output: %.*s\n\n",
                   i,
                   LIT(tasks[i].root_dir),
                   LIT(tasks[i].input_filename),
                   LIT(tasks[i].output_filename));
-        */
+        
     }
 
     *out_tasks = tasks;
