@@ -119,13 +119,25 @@ String read_line(Reader *r)
     return ret;
 }
 
+b32 read_bool(Reader *r)
+{
+    String ident = read_ident(r);
+    if (cstring_cmp(ident, "true") == 0)
+        return true;
+    else if (cstring_cmp(ident, "false") == 0)
+        return false;
+    else
+        reader_error(r, "'%.*s' is not a valid boolean value", LIT(ident));
+    return false;
+}
+
 String read_ident(Reader *r)
 {
     String ret;
     ret.start = r->data;
     if (!(gb_char_is_alpha(r->data[0]) || r->data[0] == '_'))
     {
-        reader_error(r, "'%c' is not a valid identifier character\n", r->data[0]);
+        reader_error(r, "'%c' is not a valid identifier character", r->data[0]);
         gb_exit(1);
     }
     
@@ -353,6 +365,8 @@ void read_bind_config(Reader *r)
             r->conf->bind_conf.proc_case = read_case(r);
         else if (cstring_cmp(label, "const-case") == 0)
             r->conf->bind_conf.const_case = read_case(r);
+        else if (cstring_cmp(label, "use-cstring") == 0)
+            r->conf->bind_conf.use_cstring = read_bool(r);
         else if (cstring_cmp(label, "ordering") == 0)
             r->conf->bind_conf.ordering = read_ordering(r);
         else if (cstring_cmp(label, "custom-ordering") == 0)

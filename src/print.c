@@ -311,7 +311,7 @@ void print_function_type(Printer p, Node *node, int indent)
         && cstring_cmp(node->FunctionType.ret_type->Ident.token.str, "void") == 0;
     
     gb_fprintf(p.out_file, "%cproc(", ret_void ? 0 : '(');
-    if (node->FunctionType.params->kind)
+    if (node->FunctionType.params)
         print_function_parameters(p, node->FunctionType.params, 0);
     gb_fprintf(p.out_file, ")");
     
@@ -388,6 +388,7 @@ void print_type(Printer p, Node *node, int indent)
     case NodeKind_UnionType:
     case NodeKind_EnumType:
     case NodeKind_IntegerType:
+    case NodeKind_FloatType:
     case NodeKind_Ident:
         print_base_type(p, node, indent);
         break;

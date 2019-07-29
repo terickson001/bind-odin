@@ -67,11 +67,11 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
         Preprocessor *pp = make_preprocessor(tokens, root_dir, task.input_filename, &conf->pp_conf);
         pp->system_includes = system_includes;
         run_pp(pp);
-        if (t == 0)
-            pp_print(pp, "./test/windows.i");
+        // if (t == 0)
+        //     pp_print(pp, "./test/windows.i");
 
         gbArray(Define) defines = pp_dump_defines(pp, task.input_filename);
-        
+
         gb_array_append(pp->output, (Token){.kind=Token_EOF});
         Parser parser = make_parser(0);
         hashmap_free(parser.type_table);

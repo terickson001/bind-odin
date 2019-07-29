@@ -5,6 +5,7 @@
    The filled in settings are the settings which I used to bind X11
    
    Sections are labeled with `::/section-name`
+   Booleans are either `true` or `false`
    Strings are denoted with `"` `"`
    Lists are denoted with `[` `]` and are not comma-delimited
    Maps are denoted with `{` `}` and are not comma-delimited
@@ -69,6 +70,8 @@ prefix       = X
 # proc-case   = snake_case
 # const-case  = SCREAMING_SNAKE_CASE
 
+# Whether or not to convert `char *` to `cstring`
+use-cstring   = true
 #> Ordering: (Default: SORTED)
 
     SORTED ordering prints in the order `[Defines Types Variables Procedures]`

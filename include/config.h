@@ -38,6 +38,8 @@ typedef struct BindConfig
     Case var_case;
     Case proc_case;
     Case const_case;
+
+    b32 use_cstring;
     
     BindOrdering ordering;
     gbArray(String) custom_ordering;
