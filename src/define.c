@@ -86,6 +86,9 @@ void init_std_defines(Define_Map **defines)
 #if defined(_MSC_VER)
     add_define(defines, make_string("_MSC_VER"), make_token_run(STRING(_MSC_VER), Token_Integer), 0, 0, global);
 #endif
+#if defined(_MSVC_LANG)
+    add_define(defines, make_string("_MSVC_LANG"), make_token_run(STRING(_MSVC_LANG), Token_Integer), 0, 0, global);
+#endif
 
 /*
  *  AMD64

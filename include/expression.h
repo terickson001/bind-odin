@@ -1,106 +1,10 @@
-#ifndef C_PREPROCESSOR_EXPRESSION_H
-#define C_PREPROCESSOR_EXPRESSION_H 1
+#ifndef _PP_EXPRESSION_H_
+#define _PP_EXPRESSION_H_
 
-#include "types.h"
+#include "gb/gb.h"
+
+#include "string.h"
 #include "preprocess.h"
-
-typedef enum Op_Kind
-{
-    Op_Invalid,
-
-    Op_Add,
-    Op_Sub,
-    Op_Mul,
-    Op_Div,
-    Op_Mod,
-
-    Op_BOr,
-    Op_BAnd,
-    Op_BNot,
-    Op_Shl,
-    Op_Shr,
-    Op_Xor,
-
-    Op_EQ,
-    Op_NEQ,
-    Op_LE,
-    Op_GE,
-    Op_LT,
-    Op_GT,
-
-    Op_Not,
-    Op_And,
-    Op_Or,
-
-    Op_TernL,
-    Op_TernR,
-
-    Op_Semicolon,
-
-    Op_sizeof,
-
-    __Op_LiteralEnd,
-
-    Op_typecast,
-
-    Op_Count
-} Op_Kind;
-
-gb_global char const *Op_Kind_Strings[] =
-{
-    "Op_Invalid",
-
-    "+",
-    "-",
-    "*",
-    "/",
-    "%",
-
-    "|",
-    "&",
-    "~",
-    "<<",
-    ">>",
-    "^",
-
-    "==",
-    "!=",
-    "<=",
-    ">=",
-    "<",
-    ">",
-
-    "!",
-    "&&",
-    "||",
-
-    "?",
-    ":",
-
-    ";",
-
-    "sizeof",
-    "typecast"
-};
-
-typedef struct Expr Expr;
-typedef struct Op
-{
-    int precedence;
-    Op_Kind kind;
-    Expr *type;
-} Op;
-
-typedef enum Expr_Kind
-{
-    Expr_Invalid,
-    Expr_Constant,
-    Expr_Type,
-    Expr_String,
-    Expr_Unary,
-    Expr_Binary,
-    Expr_Ternary
-} Expr_Kind;
 
 typedef enum Constant_Size
 {
@@ -126,70 +30,73 @@ typedef struct Constant_Format
 } Constant_Format;
 gb_global Constant_Format DEFAULT_FORMAT = {false, 10, -1};
 
-typedef struct Constant_Expr
+typedef struct Expr Expr;
+typedef struct Expr_Constant
 {
-    u64 val;
-    Constant_Type type;
-    b32 is_set;
-    Constant_Format format;
-} Constant_Expr;
-
-typedef struct String_Expr
+	u64 val;
+	Constant_Type type;
+	Constant_Format fmt;
+} Expr_Constant;
+typedef struct Expr_String
 {
-    String str;
-    b32 wide;
-} String_Expr;
-
-/* typedef struct Type_Expr */
-/* { */
-/*     Node *type; */
-/* } Type_Expr; */
-
-typedef struct Unary_Expr
+	String str;
+} Expr_String;
+typedef struct Expr_Macro
 {
-    Op op;
-    struct Expr *operand;
-} Unary_Expr;
-
-typedef struct Binary_Expr
+	Token name;
+    Token_Run args;
+} Expr_Macro;
+typedef struct Expr_Paren
 {
-    struct Expr *lhs;
-    Op op;
-    struct Expr *rhs;
-} Binary_Expr;;
-
-typedef struct Ternary_Expr
+	Expr *expr;
+} Expr_Paren;
+typedef struct Expr_Unary
 {
-    struct Expr *lhs;
-    Op lop;
-    struct Expr *mid;
-    Op rop;
-    struct Expr *rhs;
-} Ternary_Expr;
+	Token op;
+	Expr *operand;
+} Expr_Unary;
+typedef struct Expr_Binary
+{
+	Token op;
+	Expr *lhs;
+	Expr *rhs;
+} Expr_Binary;
+typedef struct Expr_Ternary
+{
+	Expr *cond;
+	Expr *then;
+	Expr *els_;
+} Expr_Ternary;
+
+typedef enum ExprKind
+{
+    ExprKind_Invalid,
+    ExprKind_Constant,
+    ExprKind_String,
+    ExprKind_Macro,
+    ExprKind_Paren,
+    ExprKind_Unary,
+    ExprKind_Binary,
+    ExprKind_Ternary
+} ExprKind;
 
 struct Expr
 {
-    Expr_Kind kind;
-    Expr *parent;
-    int parens;
-    union
-    {
-        Constant_Expr  constant;
-        String_Expr    string;
-        Unary_Expr     unary;
-        Binary_Expr    binary;
-        Ternary_Expr   ternary;
-    };
+	ExprKind kind;
+	union
+	{
+		Expr_Constant Constant;
+		Expr_String   String;
+		Expr_Macro    Macro;
+		Expr_Paren    Paren;
+		Expr_Unary    Unary;
+		Expr_Binary   Binary;
+		Expr_Ternary  Ternary;
+	};
 };
 
-Expr *pp_eval_expression(Expr *expr);
-Op token_operator(Token token);
-// Op parse_operator(char **str);
-// void print_expression(Expr *expr);
-char const *op_string(Op op);
 Expr *pp_parse_expression(Token_Run expr, gbAllocator allocator, Preprocessor *pp, b32 is_directive);
-void free_expr(gbAllocator allocator, Expr *expr);
-//void print_expr(Expr *expr);
-b32 num_positive(Constant_Expr expr);
+u64 pp_eval_expression(Preprocessor *pp, Expr *expr);
+void free_expr(gbAllocator a, Expr *expr);
 
-#endif /* ifndef C_PREPROCESSOR_EXPRESSION_H */
+#endif

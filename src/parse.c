@@ -625,6 +625,7 @@ Node *parse_attribute(Parser *p);
 Node *parse_attributes(Parser *p);
 Node *parse_function_type(Parser *p, Node *base_type, NodeKind *base_kind_out);
 Node *parse_decl(Parser *p, VarDeclKind var_kind);
+Node *parse_decl_spec(Parser *p);
 
 Node *parse_compound_literal(Parser *p)
 {
@@ -1052,6 +1053,9 @@ Node *parse_record(Parser *p)
         return &NODE_INVALID;
     }
     
+    while (p->curr->kind == Token_declspec)
+        parse_decl_spec(p);
+
     Node *attrs;
     if (p->curr->kind == Token_attribute)
         attrs = parse_attributes(p);
@@ -1114,7 +1118,10 @@ Node *parse_enum(Parser *p)
 {
     Token t;
     t = require(Token_enum, p);
-    
+
+    while (p->curr->kind == Token_declspec)
+        parse_decl_spec(p);
+
     Node *attrs;
     if (p->curr->kind == Token_attribute)
         attrs = parse_attributes(p);
@@ -1518,9 +1525,9 @@ void _type_add_child(Node **parent, Node *child)
         case NodeKind_ConstType:
             curr = curr->ConstType.type;
             break;
-		case NodeKind_BitfieldType:
-			curr = curr->BitfieldType.type;
-			break;
+        case NodeKind_BitfieldType:
+            curr = curr->BitfieldType.type;
+            break;
         default: gb_printf_err("ERROR: Cannot add type specifier to %.*s\n", LIT(node_strings[curr->kind]));
         }
     }
@@ -1539,8 +1546,8 @@ void _type_add_child(Node **parent, Node *child)
     case NodeKind_ConstType:
         prev->ConstType.type = child;
         break;
-	case NodeKind_BitfieldType:
-		prev->BitfieldType.type = child;
+    case NodeKind_BitfieldType:
+        prev->BitfieldType.type = child;
     default: break;
     }
 }
@@ -1614,6 +1621,9 @@ Node *parse_type_spec(Parser *p, Node **var_name)
         return node;
 
     // Ignore all of these
+    case Token__ptr32:
+    case Token__ptr64:
+
     case Token_static:
     case Token_extern:
     case Token_extension:

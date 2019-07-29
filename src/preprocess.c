@@ -942,13 +942,10 @@ void directive_if(Preprocessor *pp)
     Token_Run expr = pp_get_line(pp);
 
     Expr *parsed = pp_parse_expression(expr, pp->allocator, pp, true);
-    Expr *res = pp_eval_expression(parsed);
+    u64 res = pp_eval_expression(pp, parsed);
 
-    GB_ASSERT(res && res->kind == Expr_Constant && res->constant.is_set);
-
-    _directive_conditional(pp, res->constant.val, false);
+    _directive_conditional(pp, res, false);
     
-    free_expr(pp->allocator, res);
     free_expr(pp->allocator, parsed);
 }
     
@@ -964,11 +961,9 @@ void directive_elif(Preprocessor *pp)
         Token_Run expr = pp_get_line(pp);
 
         Expr *parsed = pp_parse_expression(expr, pp->allocator, pp, true);
-        Expr *res = pp_eval_expression(parsed);
+        u64 res = pp_eval_expression(pp, parsed);
         
-        GB_ASSERT(res && res->kind == Expr_Constant && res->constant.is_set);
-        _directive_conditional(pp, res->constant.val, true);
-        free_expr(pp->allocator, res);
+        _directive_conditional(pp, res, true);
     }
 }
 

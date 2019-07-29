@@ -92,6 +92,8 @@ TOKEN_KIND(Token__KeywordBegin, "_KeywordBegin"),        \
         TOKEN_KIND(Token__int64,       "__int64"),       \
         TOKEN_KIND(Token_float,        "float"),         \
         TOKEN_KIND(Token_double,       "double"),        \
+        TOKEN_KIND(Token__ptr32,       "__ptr32"),        \
+        TOKEN_KIND(Token__ptr64,       "__ptr64"),        \
         TOKEN_KIND(Token_typedef,      "typedef"),       \
         TOKEN_KIND(Token_if,           "if"),            \
         TOKEN_KIND(Token_else,         "else"),          \
