@@ -14,7 +14,6 @@ gb_global Node NODE_INVALID =
 
 typedef struct Parser
 {
-    Tokenizer *tokenizer;
     Token *start, *curr, *end;
     gbAllocator alloc;
     int node_index;
@@ -26,8 +25,7 @@ typedef struct Parser
     Ast_File file;
 } Parser;
 
-Parser make_parser(Tokenizer *t);
-void init_parser(Parser *p);
+Parser make_parser();
 void destroy_parser(Parser p);
 void parse_file(Parser *p);
 void parse_defines(Parser *p, gbArray(Define) defines);

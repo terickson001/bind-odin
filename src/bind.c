@@ -10,6 +10,13 @@
 #include "types.h"
 #include "hashmap.h"
 
+map_t init_type_table(gbAllocator a)
+{
+    map_t type_table = hashmap_new(a);
+    hashmap_put(type_table, make_string("void"), 0);
+    return type_table;
+}
+
 void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
 {
     gbAllocator a = gb_heap_allocator();
@@ -24,9 +31,9 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
     package.lib_name = conf->bind_conf.lib_name;
     package.name     = conf->bind_conf.package_name;
 
-    map_t type_table = hashmap_new(a);
+    map_t type_table = init_type_table(a);
     gbArray(String) system_includes = get_system_includes(a);
-    
+    gb_printf("STARTING PREPROCESS/PARSE...\n");
     for (int t = 0; t < gb_array_count(tasks); t++)
     {
         Bind_Task task = tasks[t];
@@ -67,14 +74,11 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
         Preprocessor *pp = make_preprocessor(tokens, root_dir, task.input_filename, &conf->pp_conf);
         pp->system_includes = system_includes;
         run_pp(pp);
-        // if (t == 0)
-        //     pp_print(pp, "./test/windows.i");
 
         gbArray(Define) defines = pp_dump_defines(pp, task.input_filename);
 
         gb_array_append(pp->output, (Token){.kind=Token_EOF});
-        Parser parser = make_parser(0);
-        hashmap_free(parser.type_table);
+        Parser parser = make_parser();
         parser.type_table = type_table;
         parser.start = parser.curr = pp->output;
         parser.end = parser.start + gb_array_count(pp->output)-1;
@@ -91,8 +95,7 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
         gb_array_append(files_to_free, fc);
     }
 
-    Parser parser = make_parser(0);
-    hashmap_free(parser.type_table);
+    Parser parser = make_parser();
     parser.type_table = type_table;
     for (int i = 0; i < gb_array_count(package.files); i++)
     {
@@ -100,10 +103,13 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
         parse_defines(&parser, package.files[i].raw_defines);
         package.files[i].defines = parser.file.defines;
     }
-    
+    gb_printf("----PREPROCESS/PARSE FINISHED.\n");
+    gb_printf("STARTING RESOLVE\n");
     Resolver resolver = make_resolver(package, &conf->bind_conf);
     resolve_package(&resolver);
-
+    gb_printf("----RESOLVE FINISHED\n");
+    gb_printf("STARTING PRINT\n");
     Printer printer = make_printer(resolver);
     print_package(printer);
+    gb_printf("----PRINT FINISHED.");
 }
