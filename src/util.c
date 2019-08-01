@@ -54,7 +54,7 @@ void create_path_to_file(char const *filename)
 {
     String curr_dir = {(char *)filename, 0};
     if (curr_dir.start[0] == GB_PATH_SEPARATOR
-        || (curr_dir.start[0] == '.' && curr_dir.start[1] == GB_PATH_SEPARATOR))
+     || (curr_dir.start[0] == '.' && curr_dir.start[1] == GB_PATH_SEPARATOR))
         filename++;
 
     char const *d = 0;
@@ -342,6 +342,8 @@ String convert_type(TypeInfo *info, map_t rename_map, BindConfig *conf, gbAlloca
             result = "u16";
         else if (cstring_cmp(ident, "size_t") == 0)
             result = "uint";
+        else if (cstring_cmp(ident, "ssize_t") == 0)
+            result = "int";
         else if (cstring_cmp(ident, "PWORD") == 0)
             result = "^u16";
         else
