@@ -57,7 +57,8 @@ void init_rename_map(map_t rename_map, gbAllocator allocator)
         "proc",    "procedure",
         "context", "context_",
         "any",     "any_",
-        "in",      "input"
+        "in",      "input",
+        "when",    "when_",
     };
 
     int count = sizeof(reserved_renames)/(sizeof(reserved_renames[0]));
@@ -156,6 +157,7 @@ char *odinize_number(String num, gbAllocator a)
         case 'l':
         case 'u':
         case 'U':
+        case 'i':
             break;
         default: continue;
         }
@@ -327,12 +329,7 @@ void print_base_type(Printer p, Node *node, int indent)
 {
     TypeInfo info = get_type_info(node, p.allocator);
     String name = convert_type(&info, p.rename_map, p.conf, p.allocator);
-    
-    // print_indent(p, indent);
-    
-    // for (int i = 0; i < info.stars; i++)
-    //     gb_fprintf(p.out_file, "^");
-    
+
     switch (info.base_type->kind)
     {
     case NodeKind_StructType:
@@ -584,8 +581,8 @@ void print_record(Printer p, Node *node, int indent, b32 top_level, b32 indent_f
 
         for (int i = 0; i < gb_array_count(fields); i++)
         {
-			print_variable(p, fields[i], indent+1, false, field_padding);
-			gb_fprintf(p.out_file, ",\n");
+            print_variable(p, fields[i], indent+1, false, field_padding);
+            gb_fprintf(p.out_file, ",\n");
         }
     }
     
@@ -593,43 +590,40 @@ void print_record(Printer p, Node *node, int indent, b32 top_level, b32 indent_f
     gb_fprintf(p.out_file, "}");
 }
 
-// TODO(@Robustnesss): Consolidate VarDecl and VaArgs
-//                     add VarDeclKind "VarDecl_VaArgs"
 void print_function_parameters(Printer p, Node *node, int indent)
 {
     gbArray(Node *) params = node->VarDeclList.list;
     b32 use_param_names = true;
 
+    // Check for `void` params
+    if (gb_array_count(params) == 1
+     && params[0]->VarDecl.kind == VarDecl_NamelessParameter
+     && params[0]->VarDecl.type->kind == NodeKind_Ident
+     && cstring_cmp(params[0]->VarDecl.type->Ident.token.str, "void") == 0)
+        return;
+
     // Determine whether to use parameter names
     for (int i = 0; i < gb_array_count(params) && use_param_names; i++)
     {
-        switch (params[i]->kind)
-        {
-        case NodeKind_VarDecl:
-            if (params[i]->VarDecl.kind != VarDecl_NamelessParameter) break;
-        case NodeKind_VaArgs:
+        if (params[i]->VarDecl.kind == VarDecl_NamelessParameter)
             use_param_names = false;
-            
-        default: break;
-        }
     }
     
     for (int i = 0; i < gb_array_count(params); i++)
     {
-        if (use_param_names)
-            print_variable(p, params[i], indent, false, 0);
-        else
+        switch (params[i]->VarDecl.kind)
         {
-            switch (params[i]->kind)
-            {
-            case NodeKind_VarDecl:
+        case VarDecl_Parameter:
+        case VarDecl_NamelessParameter:
+            if (use_param_names)
+                print_variable(p, params[i], indent, false, 0);
+            else
                 print_type(p, params[i]->VarDecl.type, indent);
-                break;
-            case NodeKind_VaArgs:
-                gb_fprintf(p.out_file, "#c_vararg ..any");
-                break;
-            default: break;
-            }
+            break;
+        case VarDecl_VaArgs:
+            gb_fprintf(p.out_file, "#c_vararg %s..any", use_param_names?"__args : ":0);
+            break;
+        default: break;
         }
         if (i != gb_array_count(params) - 1)
             gb_fprintf(p.out_file, ", ");
@@ -696,7 +690,8 @@ void print_typedef(Printer p, Node *node, int indent)
             if (string_cmp(record_renamed, renamed) == 0)
             {
                 print_record(p, defs[i]->VarDecl.type, 0, true, true);
-                gb_fprintf(p.out_file, ";\n\n");
+                if (i+1 < gb_array_count(defs))
+                    gb_fprintf(p.out_file, ";\n\n");
                 continue;
             }
         }
@@ -709,6 +704,7 @@ void print_typedef(Printer p, Node *node, int indent)
         if (i+1 < gb_array_count(defs))
             gb_fprintf(p.out_file, ";\n");
     }
+    gb_fprintf(p.out_file, ";\n\n");
 }
 
 void print_string(Printer p, String str, int indent)
@@ -759,25 +755,14 @@ void print_node(Printer p, Node *node, int indent, b32 top_level, b32 indent_fir
             gb_fprintf(p.out_file, ";\n\n");
         }
         print_typedef(p, node, indent);
-        gb_fprintf(p.out_file, ";\n\n");
+        //gb_fprintf(p.out_file, ";\n\n");
     } break;
         
     default:
-        gb_printf_err("\e[31mERROR:\e[0m Unhandled Node in printer (%.*s)\n", LIT(node_strings[node->kind]));
+        gb_printf_err("\x1b[31mERROR:\x1b[0m Unhandled Node in printer (%.*s)\n", LIT(node_strings[node->kind]));
         break;
     }
 }
-
-/*
-void print_define(Printer p, Define def)
-{
-    String renamed = rename_ident(def.key, printer, RENAME_TYPE, true);
-    Expr *expr = eval_expression(parse_expression(def.value, printer.allocator, 0, false));
-    gb_fprintf(printer.out_file, "%.*s :: ", LIT(renamed));
-    print_expr(printer, expr, 0);
-    gb_fprintf(printer.out_file, "; // #define %.*s %.*s\n", LIT(def.key), LIT(token_run_string(def.value)));
-}
-*/
 
 void print_define(Printer p, Node *def)
 {
@@ -806,7 +791,7 @@ void print_file(Printer p)
         {
             gb_fprintf(p.out_file, "/* Defines */\n");
             for (int i = 0; i < gb_array_count(p.file.defines); i++)
-                print_define(p, p.file.defines[i]);
+                if(!p.file.defines[i]->no_print) print_define(p, p.file.defines[i]);
             gb_fprintf(p.out_file, "\n");
         }
         
