@@ -966,8 +966,7 @@ gb_mutex_init(&m);
 }
 #endif
 
-
-
+struct gbThread;
 #define GB_THREAD_PROC(name) isize name(struct gbThread *thread)
 typedef GB_THREAD_PROC(gbThreadProc);
 
