@@ -300,6 +300,8 @@ void read_pp_config(Reader *r)
             r->conf->pp_conf.whitelist = read_path(r);
         else if (cstring_cmp(label, "pre-includes") == 0)
             read_map(r, &r->conf->pp_conf.pre_includes);
+        else if (cstring_cmp(label, "shallow-include") == 0)
+            r->conf->pp_conf.shallow_include = read_bool(r);
         else
             reader_error(r, "Invalid label \"%.*s\" in ::/preprocessor\n", LIT(label));
         consume_whitespace(r, true);

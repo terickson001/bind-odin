@@ -17,6 +17,8 @@ typedef struct PreprocessorConfig
 
     // {String:[String]}
     map_t pre_includes;
+
+    b32 shallow_include;
 } PreprocessorConfig;
 
 typedef enum BindOrdering

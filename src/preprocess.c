@@ -241,16 +241,15 @@ void pp_parse_macro_args(Preprocessor *pp, gbArray(Token_Run) *args, b32 is_para
         pp_advance(pp);
     }
     expect_token(&pp->context->tokens, Token_CloseParen);
-    // if (free_args)
-    //     gb_array_free(*args);
 }
 
 gbArray(Token) run_pp_sandboxed(Preprocessor *pp, Token_Run *run);
 
 void pp_write_token_run(Preprocessor *pp, Token_Run to_write)
 {
-    // if (pp->context->in_include && !pp->context->in_sandbox) // Don't actually write things from includes
-    //     return;
+    // Don't actually write things from includes if `shallow_include` is set
+    if (pp->conf->shallow_include && pp->context->in_include && !pp->context->in_sandbox)
+        return;
 
     while (to_write.curr <= to_write.end)
     {
