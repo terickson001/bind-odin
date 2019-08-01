@@ -30,9 +30,11 @@ const char *HELP_TEXT =
     "  -P, --package <package>           Use <package> as the package name for the bindings\n";
 
 Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks);
+void enable_console_colors();
 
 int main(int argc, char **argv)
 {
+    enable_console_colors();
     gbAllocator a = gb_heap_allocator();
 
     gbArray(Bind_Task) tasks;
@@ -40,6 +42,20 @@ int main(int argc, char **argv)
     print_config(conf);
 
     bind_generate(conf, tasks);
+    gb_printf("DONE!\n");
+}
+
+void enable_console_colors()
+{
+    #ifdef GB_SYSTEM_WINDOWS
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+    u32 mode;
+    GetConsoleMode(h, &mode);
+    SetConsoleMode(h, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+    #else
+    // WOW! It just works!!
+    // Crazy
+    #endif
 }
 
 Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
@@ -64,7 +80,7 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
             {
                 String out = conf->out_directory.start ? conf->out_directory : conf->out_file;
                 gb_printf_err(
-                    "\e[31mERROR:\e[0m %s %s: Output has already been specified (%.*s)\n",
+                    "\x1b[31mERROR:\x1b[0m %s %s: Output has already been specified (%.*s)\n",
                     argv[i], argv[i+1], LIT(out));
                 gb_exit(1);
             }
@@ -84,14 +100,14 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
                 if (conf->files)
                 {
                     gb_printf_err(
-                        "\e[31mERROR:\e[0m %s %s: Inputs must be either files or a directory\n",
+                        "\x1b[31mERROR:\x1b[0m %s %s: Inputs must be either files or a directory\n",
                         argv[i], argv[i+1]);
                     gb_exit(1);
                 }
                 if (conf->directory.start)
                 {
                     gb_printf_err(
-                        "\e[31mERROR:\e[0m %s %s: Input directory has already been specified (%.*s)\n",
+                        "\x1b[31mERROR:\x1b[0m %s %s: Input directory has already been specified (%.*s)\n",
                         argv[i], argv[i+1], LIT(conf->directory));
                     gb_exit(1);
                 }
@@ -102,7 +118,7 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
                 if (conf->directory.start)
                 {
                     gb_printf_err(
-                        "\e[31mERROR:\e[0m %s %s: Inputs must be either files or a directory\n",
+                        "\x1b[31mERROR:\x1b[0m %s %s: Inputs must be either files or a directory\n",
                         argv[i], argv[i+1]);
                     gb_exit(1);
                 }
@@ -179,14 +195,14 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
                 if (conf->files)
                 {
                     gb_printf_err(
-                        "\e[31mERROR:\e[0m %s: Inputs must be either files or a directory\n",
+                        "\x1b[31mERROR:\x1b[0m %s: Inputs must be either files or a directory\n",
                         argv[i]);
                     gb_exit(1);
                 }
                 if (conf->directory.start)
                 {
                     gb_printf_err(
-                        "\e[31mERROR:\e[0m %s: Input directory has already been specified (%.*s)\n",
+                        "\x1b[31mERROR:\x1b[0m %s: Input directory has already been specified (%.*s)\n",
                         argv[i], LIT(conf->directory));
                     gb_exit(1);
                 }
@@ -197,7 +213,7 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
                 if (conf->directory.start)
                 {
                     gb_printf_err(
-                        "\e[31mERROR:\e[0m %s: Inputs must be either files or a directory\n",
+                        "\x1b[31mERROR:\x1b[0m %s: Inputs must be either files or a directory\n",
                         argv[i]);
                     gb_exit(1);
                 }
@@ -215,14 +231,14 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
                     if (conf->files)
                     {
                         gb_printf_err(
-                            "\e[31mERROR:\e[0m %s: Inputs must be either files or a directory\n",
+                            "\x1b[31mERROR:\x1b[0m %s: Inputs must be either files or a directory\n",
                             argv[i]);
                         gb_exit(1);
                     }
                     if (conf->directory.start)
                     {
                         gb_printf_err(
-                            "\e[31mERROR:\e[0m %s: Input directory has already been specified (%.*s)\n",
+                            "\x1b[31mERROR:\x1b[0m %s: Input directory has already been specified (%.*s)\n",
                             argv[i], LIT(conf->directory));
                         gb_exit(1);
                     }
@@ -233,7 +249,7 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
                     if (conf->directory.start)
                     {
                         gb_printf_err(
-                            "\e[31mERROR:\e[0m %s: Inputs must be either files or a directory\n",
+                            "\x1b[31mERROR:\x1b[0m %s: Inputs must be either files or a directory\n",
                             argv[i]);
                         gb_exit(1);
                     }
@@ -270,8 +286,8 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
         if (!gb_dir_contents(dir, &entries, true))
         {
             gb_printf_err(
-                "\e[31mERROR:\e[0m Could not open directory '%.*s'(%d)\n",
-                LIT(conf->directory), conf->directory.len);
+                "\x1b[31mERROR:\x1b[0m Could not open directory '%.*s'\n",
+                LIT(conf->directory));
             gb_exit(1);
         }
         gb_free(a, dir);

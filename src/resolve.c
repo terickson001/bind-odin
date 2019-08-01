@@ -110,20 +110,12 @@ void remove_typedef_bit_field_type(Resolver *r, Node *tpdef)
          && _record_has_bitfield(r, type))
         {
             tpdef->no_print = true;
-            gb_printf("NOTE: Could not bind record '%.*s', because it contains a bitfield\n", LIT(name));
+            gb_printf("\x1b[35mNOTE:\x1b[0m Could not bind record '%.*s', because it contains a bitfield\n", LIT(name));
             break;
         }
     }
 }
 
-void register_forward_declaration(Resolver *r, Node *record)
-{
-    if (record->StructType.fields)
-        return;
-
-    String name = record->StructType.name->Ident.token.str;
-    hashmap_put(r->forward_declarations, name, record);
-}
 
 int hashmap_add_opaque(void *a, void *b)
 {

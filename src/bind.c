@@ -44,9 +44,9 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
         if (!fc.data)
         {
             if (gb_file_exists(filename))
-                gb_printf_err("\e[31mERROR:\e[0m File '%.*s' is empty\n", LIT(task.input_filename));
+                gb_printf_err("\x1b[31mERROR:\x1b[0m File '%.*s' is empty\n", LIT(task.input_filename));
             else
-                gb_printf_err("\e[31mERROR:\e[0m Failed to open file \'%.*s\'\n", LIT(task.input_filename));
+                gb_printf_err("\x1b[31mERROR:\x1b[0m Failed to open file \'%.*s\'\n", LIT(task.input_filename));
             gb_free(a, filename);
             gb_exit(1);
         }

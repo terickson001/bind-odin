@@ -7,7 +7,7 @@ void warning(Token tok, char const *fmt, ...)
 {
     va_list va;
     va_start(va, fmt);
-    gb_printf_err("%.*s(%ld:%ld): \e[35mWARNING:\e[0m %s\n",
+    gb_printf_err("%.*s(%ld:%ld): \x1b[35mWARNING:\x1b[0m %s\n",
                   LIT(tok.loc.file), tok.loc.line, tok.loc.column,
                   gb_bprintf_va(fmt, va));
     if (tok.from_loc.file.start)
@@ -20,7 +20,7 @@ void error(Token tok, char const *fmt, ...)
 {
     va_list va;
     va_start(va, fmt);
-    gb_printf_err("%.*s(%ld:%ld): \e[31mERROR:\e[0m %s\n",
+    gb_printf_err("%.*s(%ld:%ld): \x1b[31mERROR:\x1b[0m %s\n",
                   LIT(tok.loc.file), tok.loc.line, tok.loc.column,
                   gb_bprintf_va(fmt, va));
     if (tok.from_loc.line)
@@ -34,7 +34,7 @@ void syntax_error(Token tok, char const *fmt, ...)
 {
     va_list va;
     va_start(va, fmt);
-    gb_printf_err("%.*s(%ld:%ld): \e[34mSYNTAX ERROR:\e[0m %s\n",
+    gb_printf_err("%.*s(%ld:%ld): \x1b[31mSYNTAX ERROR:\x1b[0m %s\n",
                   LIT(tok.loc.file), tok.loc.line, tok.loc.column,
                   gb_bprintf_va(fmt, va));
     if (tok.from_loc.line)

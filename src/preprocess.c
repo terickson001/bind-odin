@@ -134,7 +134,7 @@ Preprocessor *make_preprocessor(gbArray(Token) tokens, String root_dir, String f
             gb_snprintf(path, 512, "%.*s%c%.*s", LIT(root_dir), GB_PATH_SEPARATOR, LIT(include_files[i]));
             fc = gb_file_read_contents(pp->allocator, true, path);
             if (!fc.data)
-                gb_printf_err("%.*s: \e[31mERROR:\e[0m Could not pre-include file '%s'\n",
+                gb_printf_err("%.*s: \x1b[31mERROR:\x1b[0m Could not pre-include file '%s'\n",
                               LIT(filename), path);
             PP_Context context = {0};
             context.filename = make_string(gb_alloc_str(pp->allocator, path));
@@ -521,7 +521,7 @@ void pp_do_macro(Preprocessor *pp, Define define, Token name, Token *preceding_t
 
         invocation.len = (peek_at(pp, -1).str.start - invocation.start) + 1;
         if (gb_array_count(args) != gb_array_count(define.params))
-            gb_printf_err("(%.*s:%ld): \e[31mERROR:\e[0m Expected %ld arguments, but got %ld in macro '%.*s'\n",
+            gb_printf_err("(%.*s:%ld): \x1b[31mERROR:\x1b[0m Expected %ld arguments, but got %ld in macro '%.*s'\n",
                           LIT(pp->context->filename), pp->line,
                           gb_array_count(define.params), gb_array_count(args),
                           LIT(invocation));
@@ -818,7 +818,7 @@ void _directive_include(Preprocessor *pp, b32 next)
         Define def = pp_get_define(pp, tok.str);
         if (!def.in_use)
         {
-            error(tok, "Undefined identifier '%.*s' in \e[35m#include\e[0m directive", LIT(tok.str));
+            error(tok, "Undefined identifier '%.*s' in \x1b[35m#include\x1b[0m directive", LIT(tok.str));
             gb_exit(1);
         }
         
@@ -856,19 +856,20 @@ void _directive_include(Preprocessor *pp, b32 next)
             }
             else
             {
-                error(tok, "Macro '%.*s' expands to invalid value '%.*s' for \e[35m#include\e[0m directive", LIT(tok.str), LIT(token_run_string(def.value)));
+                error(tok, "Macro '%.*s' expands to invalid value '%.*s' for \x1b[35m#include\x1b[0m directive", LIT(tok.str), LIT(token_run_string(def.value)));
                 gb_exit(1);
             }
         }
     }
 
+    normalize_path(filename);
     String root_dir = dir_from_path(pp->context->filename);
 
     char path[512];
     gbFileContents fc = {0};
     if (local_first && !next)
     {
-        gb_snprintf(path, 512, "%.*s%c%.*s", LIT(root_dir), root_dir.len?GB_PATH_SEPARATOR:0, LIT(filename));
+        gb_snprintf(path, 512, "%.*s%.*s", LIT(root_dir), LIT(filename));
         fc = gb_file_read_contents(pp->allocator, true, path);
     }
     if (pp->conf->include_dirs)
@@ -910,7 +911,7 @@ void _directive_include(Preprocessor *pp, b32 next)
     else
     {
         Token tok = {.loc={.file=pp->context->filename, .line=from_line}};
-        error(tok, "Could not \e[35m#include\e[0m file '%.*s'(%s)", LIT(filename), path);
+        error(tok, "Could not \x1b[35m#include\x1b[0m file '%.*s'(%s)", LIT(filename), path);
         gb_exit(1);
     }
     
@@ -983,14 +984,14 @@ void directive_error(Preprocessor *pp)
 {
     isize line = pp->line;
     Token_Run message = pp_get_line(pp);
-    gb_printf_err("%.*s:%ld: \e[31mError:\e[0m %.*s\n", LIT(pp->context->filename), pp->line, LIT(token_run_string(message)));
+    gb_printf_err("%.*s:%ld: \x1b[31mError:\x1b[0m %.*s\n", LIT(pp->context->filename), pp->line, LIT(token_run_string(message)));
 }
 
 void directive_warning(Preprocessor *pp)
 {
     isize line = pp->line;
     Token_Run message = pp_get_line(pp);
-    gb_printf_err("%.*s:%ld: \e[33mWarning:\e[0m %.*s\n", LIT(pp->context->filename), line, LIT(token_run_string(message)));
+    gb_printf_err("%.*s:%ld: \x1b[33mWarning:\x1b[0m %.*s\n", LIT(pp->context->filename), line, LIT(token_run_string(message)));
 }
 
 void directive_line(Preprocessor *pp) {}
@@ -1002,7 +1003,7 @@ void directive_pragma(Preprocessor *pp)
     if (cstring_cmp(pragma.start->str, "once") == 0)
         hashmap_put(pp->pragma_onces, pp->context->filename, 0);
     // else
-    //     gb_printf("(%.*s:%ld): \e[32mNOTE:\e[0m '#pragma %.*s' skipped\n",
+    //     gb_printf("(%.*s:%ld): \x1b[32mNOTE:\x1b[0m '#pragma %.*s' skipped\n",
     //               LIT(pp->context->filename),
     //               pp->line,
     //               LIT(token_run_string(pragma)));
@@ -1025,7 +1026,7 @@ void keyword_pragma(Preprocessor *pp)
     if (cstring_cmp(pragma.start->str, "once") == 0)
         hashmap_put(pp->pragma_onces, pp->context->filename, 0);
     // else
-    //     gb_printf("(%.*s:%ld): \e[32mNOTE:\e[0m '#pragma %.*s' skipped\n",
+    //     gb_printf("(%.*s:%ld): \x1b[32mNOTE:\x1b[0m '#pragma %.*s' skipped\n",
     //               LIT(pp->context->filename),
     //               pp->line,
     //               LIT(token_run_string(pragma)));
@@ -1118,7 +1119,7 @@ void run_pp(Preprocessor *pp)
             }
             else
             {
-                gb_printf_err("%.*s:%ld: \e[33mWarning:\e[0m Unhandled directive (%.*s)\n", LIT(pp->context->filename), pp->line, LIT(directive));
+                gb_printf_err("%.*s:%ld: \x1b[33mWarning:\x1b[0m Unhandled directive (%.*s)\n", LIT(pp->context->filename), pp->line, LIT(directive));
             }
         }
         else if (type == 2) // Identifier

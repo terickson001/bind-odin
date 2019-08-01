@@ -36,7 +36,7 @@ void reader_error(Reader *r, char const *fmt, ...)
 {
     va_list va;
     va_start(va, fmt);
-    gb_printf_err("%s(%ld:%ld): \e[31mERROR:\e[0m %s\n",
+    gb_printf_err("%s(%ld:%ld): \x1b[31mERROR:\x1b[0m %s\n",
                   r->file, r->line, r->col,
                   gb_bprintf_va(fmt, va));
     va_end(va);
