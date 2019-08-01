@@ -89,8 +89,23 @@ Token tokenize_number(Tokenizer *t)
     }
 
     while (t->curr[0] == 'u' || t->curr[0] == 'U' ||
-           t->curr[0] == 'l' || t->curr[0] == 'L')
+           t->curr[0] == 'l' || t->curr[0] == 'L' ||
+           t->curr[0] == 'i')
     {
+        if (t->curr[0] == 'i')
+        {
+            t->curr++;
+            if      (gb_strncmp(t->curr, "8",   1) == 0)
+                t->curr++;
+            else if (gb_strncmp(t->curr, "16",  2) == 0 ||
+                     gb_strncmp(t->curr, "32",  2) == 0 ||
+                     gb_strncmp(t->curr, "64",  2) == 0)
+                t->curr+=2;
+            else if (gb_strncmp(t->curr, "128", 3) == 0)
+                t->curr+=3;
+            else
+                gb_printf_err("%.*s(%ld:%ld): ERROR: illegal literal suffix\n", LIT(token.loc.file), token.loc.line, token.loc.column);
+        }
         t->curr++;
     }
 
