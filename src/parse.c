@@ -610,8 +610,12 @@ Node *parse_decl_spec(Parser *p);
 
 Node *parse_compound_literal(Parser *p)
 {
-    return &NODE_INVALID;
+    Token open = require(Token_OpenBrace, p);
+    Node *fields = parse_expr_list(p);
+    Token close = require(Token_CloseBrace, p);
+    return node_compound_lit(p, fields, open, close);
 }
+
 Node *parse_operand(Parser *p)
 {
     switch (p->curr->kind)
@@ -774,6 +778,7 @@ Node *try_type_expr(Parser *p)
         return 0;
     }
 
+    // TODO(@Robustness): Replace with parse_type_spec
     if (p->curr[0].kind == Token_OpenParen
      && p->curr[1].kind == Token_Mul
      && p->curr[2].kind == Token_CloseParen)
@@ -1699,11 +1704,6 @@ Node *parse_decl(Parser *p, VarDeclKind var_kind)
 
     if (!name)
     {
-        // if (var_kind == VarDecl_Field && allow(Token_Colon, p))
-        // {
-        //     Node *bit_count = parse_expression(p);
-        //     type = node_bitfield_type(p, type, bit_count);
-        // }
 
         Token sc = require(Token_Semicolon, p);
 
@@ -1749,12 +1749,6 @@ Node *parse_decl(Parser *p, VarDeclKind var_kind)
         gb_array_append(vars, node_var_decl(p, type, name, var_kind));
     }
 
-    // if (var_kind == VarDecl_Field && allow(Token_Colon, p))
-    // {
-    //     Node *bit_count = parse_expression(p);
-    //     for (int i = 0; i < gb_array_count(vars); i++)
-    //         vars[i]->VarDecl.type = node_bitfield_type(p, vars[i]->VarDecl.type, bit_count);
-    // }
     require(Token_Semicolon, p);
 
     Node* var_list = node_var_decl_list(p, vars, var_kind);
