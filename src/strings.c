@@ -132,6 +132,14 @@ String path_base_name(char *filename)
     return ret;
 }
 
+void normalize_path(String path)
+{
+    char from = GB_PATH_SEPARATOR=='/'?'\\':'/';
+    for (int i = 0; i < path.len; i++)
+        if (path.start[i] == from)
+            path.start[i] = GB_PATH_SEPARATOR;
+}
+
 String dir_from_path(String path)
 {
     String dir = {path.start, 0};

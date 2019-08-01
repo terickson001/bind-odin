@@ -25,6 +25,7 @@ String string_slice(String str, int start, int end);
 i32 str_last_occurence(String str, char c);
 String str_path_base_name(String filename);
 String path_base_name(char *filename);
+void normalize_path(String path);
 String dir_from_path(String path);
 
 #endif
