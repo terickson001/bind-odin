@@ -5,16 +5,13 @@
 
 #include <signal.h>
 
-Parser make_parser(Tokenizer *t)
+Parser make_parser()
 {
     Parser p;
-    p.tokenizer = t;
     
     p.node_index = 0;
     p.alloc = gb_heap_allocator();
 
-    p.type_table = hashmap_new(p.alloc);
-    
     gb_array_init(p.file.all_nodes, p.alloc);
     gb_array_init(p.file.tpdefs,    p.alloc);
     gb_array_init(p.file.records,   p.alloc);
@@ -24,22 +21,6 @@ Parser make_parser(Tokenizer *t)
     gb_array_init(p.file.defines,   p.alloc);
 
     return p;
-}
-
-void init_parser(Parser *p)
-{
-    gb_array_init(p->start, gb_heap_allocator());
-
-    for (;;)
-    {
-        Token token = get_token(p->tokenizer);
-        gb_array_append(p->start, token);
-
-        if (token.kind == Token_EOF)
-            break;
-    }
-    p->curr = p->start;
-    p->end = p->start + gb_array_count(p->start)-1;
 }
 
 void destroy_parser(Parser p)
