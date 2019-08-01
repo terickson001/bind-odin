@@ -196,11 +196,8 @@ void pp_parse_macro_args(Preprocessor *pp, gbArray(Token_Run) *args, b32 is_para
 {
     b32 free_args = false;
     if (!*args)
-    {
         gb_array_init(*args, pp->allocator);
-        free_args = true;
-    }
-    
+
     expect_token(&pp->context->tokens, Token_OpenParen);
     for (;;)
     {
