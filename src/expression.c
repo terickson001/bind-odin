@@ -294,6 +294,9 @@ Expr *pp_parse_operand(Token_Run *expr, Preprocessor *pp)
 		return string_expr(pp, str);
 	}
 
+	default: 
+		if (!gb_is_between(expr->curr->kind, Token__KeywordBegin, Token__KeywordEnd))
+			break;
 	case Token_Ident: {
 		Token name = *expr->curr;
 		advance_expr(expr);
@@ -321,7 +324,6 @@ Expr *pp_parse_operand(Token_Run *expr, Preprocessor *pp)
 			syntax_error(close, "Expected ')', got '%.*s'", LIT(TokenKind_Strings[close.kind]));
 		return expression;
 	}
-	default: break;
 	}
 	return 0;
 }
