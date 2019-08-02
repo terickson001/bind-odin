@@ -45,7 +45,10 @@ output-directory = ./test/xlib/ # Directory to output bindings
 pre-includes = {
     extensions/XKBstr.h:[Xlib.h]
 }
-
+    
+# If set to `true` don't bind anything found in includes
+shallow-include = false
+    
 ::/bind
 package     = xlib # Package name to be used for the bindings
 lib         = X11  # Foreign library to link to
