@@ -1239,9 +1239,17 @@ Node *parse_attribute(Parser *p)
 
     if (allow(Token_OpenParen, p))
     {
-        arg_ident = parse_ident(p);
-        if (allow(Token_Comma, p))
+        if (p->curr->kind == Token_Ident)
+        {
+            arg_ident = parse_ident(p);
+            if (allow(Token_Comma, p))
+                arg_expressions = parse_expr_list(p);
+        }
+        else
+        {
             arg_expressions = parse_expr_list(p);
+        }
+        require(Token_CloseParen, p);
     }
 
     return node_attribute(p, name, arg_ident, arg_expressions);
@@ -1690,14 +1698,41 @@ Node *parse_type(Parser *p, Node **var_name)
 Node *parse_decl(Parser *p, VarDeclKind var_kind)
 {
 
-    while (p->curr->kind == Token_declspec)
-        parse_decl_spec(p);
-
-    allow_unordered(p, {Token_static, Token_extern, Token_extension});
-    b32 is_inline = accept_one_of(p, 0, {Token_inline, Token__inline, Token__inline_, Token__forceinline});
-    
-    while (p->curr->kind == Token_declspec)
-        parse_decl_spec(p);
+    b32 is_static    = false;
+    b32 is_extern    = false;
+    b32 is_extension = false;
+    for (;;)
+    {
+        switch (p->curr->kind)
+        {
+        case Token_declspec:
+            parse_decl_spec(p);
+            continue;
+        case Token_attribute:
+            parse_attributes(p);
+            continue;
+        case Token_static:
+            if (is_static)
+                error(*p->curr, "declaration has already been declared static");
+            is_static = true;
+            p->curr++;
+            continue;
+        case Token_extern:
+            if (is_extern)
+                error(*p->curr, "declaration has already been declared extern");
+            is_extern = true;
+            p->curr++;
+            continue;
+        case Token_extension:
+            if (is_extension)
+                error(*p->curr, "declaration had already been declared as an extension");
+            is_extension = true;
+            p->curr++;
+            continue;
+        default: break;
+        }
+        break;
+    }
 
     Node *name = 0;
     Node *type =  parse_type(p, &name);
@@ -1724,6 +1759,9 @@ Node *parse_decl(Parser *p, VarDeclKind var_kind)
         }
     }
 
+    if (p->curr->kind == Token_attribute)
+        parse_attributes(p);
+    
     if (type->kind == NodeKind_FunctionType)
     {
         Node *body = 0;
