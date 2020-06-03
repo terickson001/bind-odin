@@ -1221,8 +1221,10 @@ Node *parse_typedef(Parser *p)
         vars = node_var_decl_list(p, list, VarDecl_Typedef);
     }
     else
+    {
         for (int i = 0; i < gb_array_count(vars->VarDeclList.list); i++)
             hashmap_put(p->type_table, vars->VarDeclList.list[i]->VarDecl.name->Ident.token.str, 0);
+    }
         
     // require(Token_Semicolon, p);
     

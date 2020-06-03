@@ -41,6 +41,8 @@ String to_snake_case(String str, gbAllocator allocator);
 String to_ada_case(String str, gbAllocator allocator);
 String to_screaming_snake_case(String str, gbAllocator allocator);
 
+void init_rename_map(map_t rename_map, gbAllocator allocator);
+
 typedef enum Rename_Kind {
     RENAME_TYPE,
     RENAME_VAR,
@@ -49,9 +51,9 @@ typedef enum Rename_Kind {
 } Rename_Kind;
 String rename_ident(String orig, Rename_Kind r, b32 do_remove_prefix, map_t rename_map, BindConfig *conf, gbAllocator allocator);
 
-String float_type_str(TypeInfo *info);
-String integer_type_str(TypeInfo *info);
-String convert_type(TypeInfo *info, map_t rename_map, BindConfig *conf, gbAllocator allocator);
+String float_type_str(Node *type);
+String integer_type_str(Node *type);
+String convert_type(Node *type, map_t rename_map, BindConfig *conf, gbAllocator allocator);
 
 char *repeat_char(char c, int count, gbAllocator allocator);
 

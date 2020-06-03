@@ -1,7 +1,7 @@
 #include "ast.h"
 #include "util.h"
 
-TypeInfo get_type_info(Node *type, gbAllocator a)
+TypeInfo get_type_info(Node *type)
 {
     TypeInfo ti = {0};
     for (;;)
@@ -56,8 +56,7 @@ void __print_node(Node *node, int depth)
         gb_printf(")");
         break;
     case NodeKind_IntegerType: {
-        TypeInfo info = get_type_info(node, gb_heap_allocator());
-        gb_printf("%.*s", LIT(integer_type_str(&info)));
+        gb_printf("%.*s", LIT(integer_type_str(node)));
         break;
     }
     case NodeKind_PointerType:

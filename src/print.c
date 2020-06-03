@@ -33,44 +33,13 @@ void print_typedef(Printer p, Node *node, int indent);
 void print_string(Printer p, String str, int indent);
 void print_node(Printer p, Node *node, int indent, b32 top_level, b32 indent_first);
 void print_file(Printer p);
-    
+
 void print_indent(Printer p, int indent)
 {
     if (!indent) return;
     char *spaces = repeat_char(' ', indent*4, p.allocator);
     gb_fprintf(p.out_file, "%s", spaces);
     gb_free(p.allocator, spaces);
-}
-
-void init_rename_map(map_t rename_map, gbAllocator allocator)
-{
-    // map_t rename_map = hashmap_new(allocator);
-    char *reserved_renames[] =
-    {
-        "type",    "kind",
-        "string",  "str",
-        "cstring", "cstr",
-        "import",  "import_",
-        "export",  "export_",
-        "using",   "using_",
-        "map",     "map_",
-        "proc",    "procedure",
-        "context", "context_",
-        "any",     "any_",
-        "in",      "input",
-        "when",    "when_",
-    };
-
-    int count = sizeof(reserved_renames)/(sizeof(reserved_renames[0]));
-    String *alloc;
-    for (int i = 0; i < count/2; i++)
-    {
-        alloc = gb_alloc_item(allocator, String);
-        alloc->start = gb_alloc(allocator, gb_strlen(reserved_renames[i*2+1]));
-        gb_strcpy(alloc->start, reserved_renames[i*2+1]);
-        alloc->len = gb_strlen(reserved_renames[i*2+1]);
-        hashmap_put(rename_map, make_string(reserved_renames[i*2]), alloc);
-    }
 }
 
 Printer make_printer(Resolver resolver)
@@ -111,6 +80,7 @@ u64 str_to_int_base(String str, u64 base)
     }
     return result;
 }
+
 u64 str_to_int(String str)
 {
     int i = 0;
@@ -327,17 +297,16 @@ void print_function_type(Printer p, Node *node, int indent)
 
 void print_base_type(Printer p, Node *node, int indent)
 {
-    TypeInfo info = get_type_info(node, p.allocator);
-    String name = convert_type(&info, p.rename_map, p.conf, p.allocator);
+    String name = convert_type(node, p.rename_map, p.conf, p.allocator);
 
-    switch (info.base_type->kind)
+    switch (node->kind)
     {
     case NodeKind_StructType:
     case NodeKind_UnionType:
     case NodeKind_EnumType:
-        if (info.base_type->StructType.fields)
+        if (node->StructType.fields)
         {
-            print_node(p, info.base_type, indent, false, false);
+            print_node(p, node, indent, false, false);
             return;
         } break;
     default: break;
@@ -370,8 +339,7 @@ void print_type(Printer p, Node *node, int indent)
         case NodeKind_IntegerType: {
             if (!p.conf->use_cstring)
                 break;
-            TypeInfo ti = get_type_info(node->PointerType.type, p.allocator);
-            String str = integer_type_str(&ti);
+            String str = integer_type_str(node->PointerType.type);
             if (cstring_cmp(str, "u8") == 0)
             {
                 gb_fprintf(p.out_file, "cstring");
@@ -410,7 +378,7 @@ void print_variable(Printer p, Node *node, int indent, b32 top_level, int name_p
 {
     print_indent(p, indent);
 
-    TypeInfo type  = get_type_info(node->VarDecl.type, p.allocator);
+    TypeInfo type  = get_type_info(node->VarDecl.type);
     switch (node->VarDecl.kind)
     {
     case VarDecl_Variable: {
@@ -659,7 +627,7 @@ void print_function(Printer p, Node *node, int indent)
     
     gb_fprintf(p.out_file, ")");
 
-    TypeInfo info = get_type_info(node->FunctionDecl.type->FunctionType.ret_type, p.allocator);
+    TypeInfo info = get_type_info(node->FunctionDecl.type->FunctionType.ret_type);
     b32 returns_void = info.stars == 0 && !info.is_array
         && info.base_type->kind == NodeKind_Ident && cstring_cmp(info.base_type->Ident.token.str, "void") == 0;
     if (!returns_void)
@@ -747,7 +715,7 @@ void print_node(Printer p, Node *node, int indent, b32 top_level, b32 indent_fir
     case NodeKind_Typedef: {
         if (node->is_opaque)
         {
-            TypeInfo info = get_type_info(node->Typedef.var_list->VarDeclList.list[0]->VarDecl.type, p.allocator);
+            TypeInfo info = get_type_info(node->Typedef.var_list->VarDeclList.list[0]->VarDecl.type);
             if (info.base_type->kind == NodeKind_EnumType)
                 print_enum(p, info.base_type, 0, true, true);
             else
@@ -850,6 +818,8 @@ void print_file(Printer p)
     }
 }
 
+void print_wrapper(Printer p);
+
 void print_package(Printer p)
 {
     for (int i = 0; i < gb_array_count(p.package.files); i++)
@@ -863,6 +833,61 @@ void print_package(Printer p)
         p.out_file = out_file;
 
         print_file(p);
-    }
+        gb_file_close(p.out_file);
 
+        /* if (p.wrap_conf->do_wrap) */
+        /* { */
+        /*     p.out_file = gb_alloc_item(p.allocator, gbFile); */
+
+        /*     create_path_to_file(p.file.filename); */
+        /*     gb_file_create(p.out_file, p.file.filename); */
+            
+        /*     print_wrapper(p); */
+        /*     gb_file_close(p.out_file); */
+        /* } */
+    }
+}
+
+b32 type_is_cstring(Node *type)
+{
+    if (type->kind == NodeKind_PointerType
+     && type->PointerType.type->kind == NodeKind_IntegerType)
+    {
+        integer_type_str(type->PointerType.type);
+    }
+}
+
+Node *child_type(Node *type)
+{
+    switch (type->kind)
+    {
+    case NodeKind_ArrayType:
+        return type->ArrayType.type;
+    case NodeKind_PointerType:
+        return type->PointerType.type;
+    case NodeKind_ConstType:
+        return type->ConstType.type;
+    default:
+        return 0;
+    }
+    
+}
+
+u64 convert_cstrings(Printer p, Node *vars)
+{
+    u64 res = 0;
+    gbArray(Node *) list = vars->VarDeclList.list;
+    for (int i = 0; i < gb_array_count(list); i++)
+    {
+        TypeInfo ti = get_type_info(list[i]->VarDecl.type);
+        if (ti.stars == 0 && !ti.is_array)
+            continue;
+        
+        String str = integer_type_str(ti.base_type);
+        if (cstring_cmp(str, "u8") == 0)
+        {
+            res |= GB_BIT(i);
+        }
+    }
+    return res;
 }

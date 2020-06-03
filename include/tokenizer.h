@@ -177,13 +177,6 @@ typedef struct Token_Run
     Token *start, *curr, *end;
 } Token_Run;
 
-/* typedef struct TokenString */
-/* { */
-/*     Token *start; */
-/*     isize len; */
-/* } TokenString; */
-
-
 Tokenizer make_tokenizer(gbFileContents fc, String filename);
 b32 try_increment_line(Tokenizer *t);
 b32 skip_space(Tokenizer *t);

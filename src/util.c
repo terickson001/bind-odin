@@ -242,9 +242,40 @@ String to_camel_case(String str, gbAllocator allocator)
     return convert_case(str, Case_CAMEL, allocator);
 }
 
-String float_type_str(TypeInfo *info)
+void init_rename_map(map_t rename_map, gbAllocator allocator)
 {
-    gbArray(Token) specs = info->base_type->FloatType.specifiers;
+    // map_t rename_map = hashmap_new(allocator);
+    char *reserved_renames[] =
+    {
+        "type",    "kind",
+        "string",  "str",
+        "cstring", "cstr",
+        "import",  "import_",
+        "export",  "export_",
+        "using",   "using_",
+        "map",     "map_",
+        "proc",    "procedure",
+        "context", "context_",
+        "any",     "any_",
+        "in",      "input",
+        "when",    "when_",
+    };
+
+    int count = sizeof(reserved_renames)/(sizeof(reserved_renames[0]));
+    String *alloc;
+    for (int i = 0; i < count/2; i++)
+    {
+        alloc = gb_alloc_item(allocator, String);
+        alloc->start = gb_alloc(allocator, gb_strlen(reserved_renames[i*2+1]));
+        gb_strcpy(alloc->start, reserved_renames[i*2+1]);
+        alloc->len = gb_strlen(reserved_renames[i*2+1]);
+        hashmap_put(rename_map, make_string(reserved_renames[i*2]), alloc);
+    }
+}
+
+String float_type_str(Node *type)
+{
+    gbArray(Token) specs = type->FloatType.specifiers;
 
     int size = -1;
     int shift = 0;
@@ -276,9 +307,9 @@ String float_type_str(TypeInfo *info)
     return ret;
 }
 
-String integer_type_str(TypeInfo *info)
+String integer_type_str(Node *type)
 {
-    gbArray(Token) specs = info->base_type->IntegerType.specifiers;
+    gbArray(Token) specs = type->IntegerType.specifiers;
     
     int size = 32;
     int is_signed = -1;
@@ -328,12 +359,12 @@ String integer_type_str(TypeInfo *info)
     return ret;
 }
 
-String convert_type(TypeInfo *info, map_t rename_map, BindConfig *conf, gbAllocator allocator)
+String convert_type(Node *type, map_t rename_map, BindConfig *conf, gbAllocator allocator)
 {
     char *result = 0;
-    if (info->base_type->kind == NodeKind_Ident)
+    if (type->kind == NodeKind_Ident)
     {
-        String ident = info->base_type->Ident.token.str;
+        String ident = type->Ident.token.str;
         if (cstring_cmp(ident, "QWORD") == 0 || cstring_cmp(ident, "uint64_t") == 0)
             result = "u64";
         else if (cstring_cmp(ident, "DWORD") == 0 || cstring_cmp(ident, "uint32_t") == 0)
@@ -352,21 +383,21 @@ String convert_type(TypeInfo *info, map_t rename_map, BindConfig *conf, gbAlloca
             return renamed;
         }
     }
-    else if (info->base_type->kind == NodeKind_IntegerType)
+    else if (type->kind == NodeKind_IntegerType)
     {
-        return integer_type_str(info);
+        return integer_type_str(type);
     }
-    else if (info->base_type->kind == NodeKind_FloatType)
+    else if (type->kind == NodeKind_FloatType)
     {
-        return float_type_str(info);
+        return float_type_str(type);
     }
-    else if (info->base_type->kind == NodeKind_StructType
-          || info->base_type->kind == NodeKind_UnionType
-          || info->base_type->kind == NodeKind_EnumType)
+    else if (type->kind == NodeKind_StructType
+          || type->kind == NodeKind_UnionType
+          || type->kind == NodeKind_EnumType)
     {
         String renamed = {0};
-        if (info->base_type->StructType.name)
-            renamed = rename_ident(info->base_type->StructType.name->Ident.token.str, RENAME_TYPE, true, rename_map, conf, allocator);
+        if (type->StructType.name)
+            renamed = rename_ident(type->StructType.name->Ident.token.str, RENAME_TYPE, true, rename_map, conf, allocator);
         return renamed;
     }
 

@@ -221,13 +221,13 @@ Token get_token(Tokenizer *t)
                 if (t->curr[0] == c)                                \
                 {                                                   \
                     token.kind = double_token;                      \
-                    token.str.len = 2;                                  \
+                    token.str.len = 2;                              \
                     t->curr++;                                      \
                 }                                                   \
                 else if (t->curr[0] == '=')                         \
                 {                                                   \
                     token.kind = equal_token;                       \
-                    token.str.len = 2;                                  \
+                    token.str.len = 2;                              \
                     t->curr++;                                      \
                 }                                                   \
                 else                                                \
@@ -249,7 +249,7 @@ Token get_token(Tokenizer *t)
                 if (t->curr[0] == '=')              \
                 {                                   \
                     token.kind = equal_token;       \
-                    token.str.len = 2;                  \
+                    token.str.len = 2;              \
                     t->curr++;                      \
                 }                                   \
                 else                                \

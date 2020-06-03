@@ -279,7 +279,7 @@ typedef struct TypeInfo
     b32 is_array;
     b32 is_bitfield;
 } TypeInfo;
-TypeInfo get_type_info(Node *type, gbAllocator a);
+TypeInfo get_type_info(Node *type);
 
 void print_ast_node(Node *node);
 void print_ast_file(Ast_File file);
