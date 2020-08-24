@@ -34,6 +34,7 @@ void enable_console_colors();
 
 int main(int argc, char **argv)
 {
+    gb_printf("%s\n", date_string(gb_utc_time_now()));
     enable_console_colors();
     gbAllocator a = gb_heap_allocator();
     
@@ -63,7 +64,7 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
     gbAllocator a = gb_heap_allocator();
     
     Config *conf = gb_alloc_item(a, Config);
-    
+    *conf = (Config){0};
     char *output = 0;
     gbArray(char *) inputs;
     gb_array_init(inputs, a);
@@ -292,7 +293,11 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
         }
         gb_free(a, dir);
         for (int i = 0; i < gb_array_count(entries); i++)
-            gb_array_append(tasks, ((Bind_Task){conf->directory, make_string(entries[i]), {0}}));
+        {
+            char const *ext = gb_path_extension(entries[i]);
+            if (ext && (gb_strcmp(ext, "c") == 0 || gb_strcmp(ext, "h") == 0))
+                gb_array_append(tasks, ((Bind_Task){conf->directory, make_string(entries[i]), {0}}));
+        }
         gb_array_free(entries);
     }
     else
@@ -320,7 +325,7 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
         }
         else if (conf->out_file.start)
         {
-            base_name = path_base_name(conf->out_file.start);
+            base_name = str_path_base_name(conf->out_file);
             root_dir = conf->out_file;
             root_dir.len = base_name.start - conf->out_file.start;
         }
@@ -329,14 +334,13 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
         if (sub_dir.start) base_length++;
         
         tasks[i].output_filename.start = (char *)gb_alloc(a, base_length+6);
-        tasks[i].output_filename.len = base_length+6;
+        tasks[i].output_filename.len = base_length+5;
         gb_snprintf(tasks[i].output_filename.start, base_length+5,
                     "%.*s%.*s%c%.*s.odin", LIT(root_dir), LIT(sub_dir), sub_dir.start?'-':0, LIT(base_name));
         
-        
         gb_printf("TASK #%d:\n  root: %.*s\n  input: %.*s\n  output: %.*s\n\n",
                   i,
-                  LIT(tasks[i].root_dir),
+                  LIT(root_dir),
                   LIT(tasks[i].input_filename),
                   LIT(tasks[i].output_filename));
         

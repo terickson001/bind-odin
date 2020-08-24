@@ -31,7 +31,7 @@ output-directory = ./test/xlib/ # Directory to output bindings
 
 #> pre-includes:
 
-   This are a sort of workaround to files that are expected to never
+   These are a sort of workaround to files that are expected to never
    be included directly, and as a result, may require macros that
    are `#define`d in another parent header.
 

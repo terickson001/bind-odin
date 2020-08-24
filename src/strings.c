@@ -67,7 +67,7 @@ b32 has_substring(String str, String substr)
         if (j == substr.len)
             return true;
     }
-        
+    
     return false;
 }
 
@@ -99,7 +99,7 @@ String str_path_base_name(String filename)
     GB_ASSERT_NOT_NULL(filename.start);
     ls = str_last_occurence(filename, GB_PATH_SEPARATOR);
     ld = str_last_occurence(filename, '.');
-
+    
     return string_slice(filename, ls+1, ld);
 }
 
@@ -110,7 +110,7 @@ String path_base_name(char *filename)
     GB_ASSERT_NOT_NULL(filename);
     ls = (char *)gb_char_last_occurence(filename, GB_PATH_SEPARATOR);
     ld = (char *)gb_char_last_occurence(filename, '.');
-
+    
     String ret = {0, 0};
     if (ls)
     {
@@ -128,7 +128,7 @@ String path_base_name(char *filename)
         else
             ret.len = gb_strlen(ret.start);
     }
-
+    
     return ret;
 }
 
@@ -137,7 +137,7 @@ void normalize_path(String path)
     char from = GB_PATH_SEPARATOR=='/'?'\\':'/';
     for (int i = 0; i < path.len; i++)
         if (path.start[i] == from)
-            path.start[i] = GB_PATH_SEPARATOR;
+        path.start[i] = GB_PATH_SEPARATOR;
 }
 
 String dir_from_path(String path)

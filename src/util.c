@@ -23,9 +23,9 @@ Token_Run alloc_token_run(Token *tokens, int count)
         len += tokens[i].str.len;
         column += tokens[i].str.len;
     }
-
+    
     String str = {gb_alloc(gb_heap_allocator(), len), len};
-
+    
     char *curr = str.start;
     
     line = tokens[0].loc.line;
@@ -54,14 +54,14 @@ void create_path_to_file(char const *filename)
 {
     String curr_dir = {(char *)filename, 0};
     if (curr_dir.start[0] == GB_PATH_SEPARATOR
-     || (curr_dir.start[0] == '.' && curr_dir.start[1] == GB_PATH_SEPARATOR))
+        || (curr_dir.start[0] == '.' && curr_dir.start[1] == GB_PATH_SEPARATOR))
         filename++;
-
+    
     char const *d = 0;
     while (filename && (d = gb_char_first_occurence(filename, GB_PATH_SEPARATOR)))
     {
         curr_dir.len = d - curr_dir.start;
-
+        
         char *temp = make_cstring(gb_heap_allocator(), curr_dir);
         gb_dir_create(temp);
         gb_free(gb_heap_allocator(), temp);
@@ -76,14 +76,14 @@ char *date_string(u64 time)
     char const *month_names[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     int years = time/31557600000000;
     int num_days = time/86400000000;
-
+    
     int leap_years;
     if (years > 264)
         leap_years = 64 + (years-266)/4;
     else
         leap_years = (years+1)/4;
     if ((years+1)%4 == 0) month_days[2]++; // current year is leap year
-
+    
     int days_in_year = num_days - (years*365+leap_years) + 1;
     int days_in_month = days_in_year;
     int month = 0;
@@ -96,10 +96,10 @@ char *date_string(u64 time)
         }
         days_in_month = days_in_month - month_days[i];
     }
-
+    
     char *ret = gb_alloc(gb_heap_allocator(), 14);
     gb_snprintf(ret, 14, "\"%.3s %.2d %.4d\"", month_names[month], days_in_month, 1601+years);
-
+    
     return ret;
 }
 
@@ -110,7 +110,7 @@ char *time_string(u64 time)
     int hours   =  time_in_day            /3600000000;
     int minutes = (time_in_day%3600000000)/60000000;
     int seconds = (time_in_day%60000000)  /1000000;
-
+    
     char *ret = gb_alloc(gb_heap_allocator(), 11);
     gb_snprintf(ret, 11, "\"%02d:%02d:%02d\"", hours, minutes, seconds);
     return ret;
@@ -120,14 +120,14 @@ String convert_case(String str, Case case_type, gbAllocator allocator)
 {
     if (!str.start || case_type == Case_NONE)
         return str;
-
+    
     String word_matches[20];
-
+    
     int word_count = 0;
     int length = 0;
     int first_char = 1;
     int i = 0;
-
+    
     word_matches[word_count].start = str.start;
     if (str.start[i] == '_')
     {
@@ -138,7 +138,7 @@ String convert_case(String str, Case case_type, gbAllocator allocator)
         word_count++;
         word_matches[word_count].start = str.start+i;
     }
-
+    
     while (i < str.len)
     {
         if (gb_is_between(str.start[i], 'a', 'z'))
@@ -162,7 +162,7 @@ String convert_case(String str, Case case_type, gbAllocator allocator)
                 word_count++;
                 do
                 {
-                  i++;
+                    i++;
                 } while (str.start[i] == '_');
                 word_matches[word_count].start = str.start+i;
             }
@@ -181,17 +181,17 @@ String convert_case(String str, Case case_type, gbAllocator allocator)
         if (first_char)
             first_char = 0;
     }
-
+    
     if (word_matches[word_count].start != str.start+i)
     {
         word_matches[word_count].len = (str.start+i) - word_matches[word_count].start;
         length += word_matches[word_count].len + 1;
         word_count++;
     }
-
+    
     if (length == 0)
         return (String){0, 0};
-
+    
     String result;
     result.start = (char *)gb_alloc(allocator, length-1);
     result.len = length-1;
@@ -212,14 +212,14 @@ String convert_case(String str, Case case_type, gbAllocator allocator)
         }
         if (case_type == Case_ADA)
             result.start[0] = gb_char_to_upper(result.start[0]);
-
+        
         result.start += word_matches[i].len + 1;
         if (i != word_count-1)
             *(result.start-1) = '_';
     }
-
+    
     result.start -= length;
-
+    
     return result;
 }
 
@@ -247,20 +247,21 @@ void init_rename_map(map_t rename_map, gbAllocator allocator)
     // map_t rename_map = hashmap_new(allocator);
     char *reserved_renames[] =
     {
-        "type",    "kind",
+        /* "type",    "kind", */
         "string",  "str",
         "cstring", "cstr",
         "import",  "import_",
-        "export",  "export_",
         "using",   "using_",
         "map",     "map_",
         "proc",    "procedure",
         "context", "context_",
         "any",     "any_",
-        "in",      "input",
+        "in",      "in_",
         "when",    "when_",
+        "package", "package_",
+        "macro",   "macro_",
     };
-
+    
     int count = sizeof(reserved_renames)/(sizeof(reserved_renames[0]));
     String *alloc;
     for (int i = 0; i < count/2; i++)
@@ -276,34 +277,34 @@ void init_rename_map(map_t rename_map, gbAllocator allocator)
 String float_type_str(Node *type)
 {
     gbArray(Token) specs = type->FloatType.specifiers;
-
+    
     int size = -1;
     int shift = 0;
-
+    
     for (int i = 0; i < gb_array_count(specs); i++)
     {
         switch (specs[i].kind)
         {
             case Token_float:  size = 32; break;
             case Token_double: size = 64; break;
-
+            
             case Token_long:   shift++;   break;
             default:
-                error(specs[i], "Invalid type specifier '%.*s' in floating point type", LIT(TokenKind_Strings[specs[i].kind]));
+            error(specs[i], "Invalid type specifier '%.*s' in floating point type", LIT(TokenKind_Strings[specs[i].kind]));
         }
     }
-
+    
     if (size == -1 || shift > 1 || (size == 32 && shift))
         error(specs[0], "Invalid floating point type");
-
+    
     size <<= shift;
-
+    
     int len = 3 + (size==128);
     String ret;
     ret.start = gb_alloc(gb_heap_allocator(), len+1);
     gb_snprintf(ret.start, len, "f%d", size);
     ret.len = len;
-
+    
     return ret;
 }
 
@@ -318,44 +319,44 @@ String integer_type_str(Node *type)
     {
         switch (specs[i].kind)
         {
-        case Token_char:
+            case Token_char:
             size = 8;
             if (is_signed == -1)
                 is_signed = 0;
             break;
             
-        case Token_signed:   is_signed = 1; break;
-        case Token_unsigned: is_signed = 0; break;
-        case Token_short:    size >>= 1;    break;
-        case Token_long:     size <<= 1;    break;
-        case Token__int8:    size = 8;      break;
-        case Token__int16:   size = 16;     break;
-        case Token__int32:   size = 32;     break;
-        case Token__int64:   size = 64;     break;
-        case Token_int:                     break;
-
-        default:
+            case Token_signed:   is_signed = 1; break;
+            case Token_unsigned: is_signed = 0; break;
+            case Token_short:    size >>= 1;    break;
+            case Token_long:     size <<= 1;    break;
+            case Token__int8:    size = 8;      break;
+            case Token__int16:   size = 16;     break;
+            case Token__int32:   size = 32;     break;
+            case Token__int64:   size = 64;     break;
+            case Token_int:                     break;
+            
+            default:
             error(specs[i], "Invalid type specifier '%.*s' in integer type", LIT(TokenKind_Strings[specs[i].kind]));
         }
     }
-
+    
     if (is_signed == -1) is_signed = 1;
     int len = 1;
     switch (size)
     {
-    case 128: size = 64;
-    case 64:
-    case 32:
-    case 16: len++;
-    case 8:  len++; break;
-    default: error(specs[0], "Invalid integer type");
+        case 128: size = 64;
+        case 64:
+        case 32:
+        case 16: len++;
+        case 8:  len++; break;
+        default: error(specs[0], "Invalid integer type");
     }
-
+    
     String ret;
     ret.start = gb_alloc(gb_heap_allocator(), len+1);
     gb_snprintf(ret.start, len, "%c%d", is_signed?'i':'u', size);
     ret.len = len;
-
+    
     return ret;
 }
 
@@ -377,6 +378,8 @@ String convert_type(Node *type, map_t rename_map, BindConfig *conf, gbAllocator 
             result = "int";
         else if (cstring_cmp(ident, "PWORD") == 0)
             result = "^u16";
+        else if (cstring_cmp(ident, "_Bool") == 0)
+            result = "b8";
         else
         {
             String renamed = rename_ident(ident, RENAME_TYPE, true, rename_map, conf, allocator);
@@ -392,15 +395,15 @@ String convert_type(Node *type, map_t rename_map, BindConfig *conf, gbAllocator 
         return float_type_str(type);
     }
     else if (type->kind == NodeKind_StructType
-          || type->kind == NodeKind_UnionType
-          || type->kind == NodeKind_EnumType)
+             || type->kind == NodeKind_UnionType
+             || type->kind == NodeKind_EnumType)
     {
         String renamed = {0};
         if (type->StructType.name)
             renamed = rename_ident(type->StructType.name->Ident.token.str, RENAME_TYPE, true, rename_map, conf, allocator);
         return renamed;
     }
-
+    
     String ret;
     ret.start = (char *)gb_alloc(allocator, gb_strlen(result));
     ret.len = gb_strlen(result);
@@ -415,10 +418,10 @@ String remove_prefix(String str, String prefix, gbAllocator allocator)
     int underscores = 0;
     while (str.start[underscores] == '_' && underscores < str.len)
         underscores++;
-
+    
     if (prefix.len >= str.len-underscores)
         return str;
-
+    
     int i = 0;
     // while (i < str.len && i < prefix.len && gb_char_to_lower(str.start[underscores+i]) == gb_char_to_lower(prefix.start[i])) 
     while (i < str.len && i < prefix.len && str.start[underscores+i] == prefix.start[i]) // NOTE(@Design): Should this be case sensitive?
@@ -446,34 +449,34 @@ String rename_ident(String orig, Rename_Kind r, b32 do_remove_prefix, map_t rena
     String *ret;
     if (hashmap_get(rename_map, orig, (void **)&ret) == 0)
         return *ret;
-
+    
     String unprefixed = orig;
     if (do_remove_prefix)
     {
         String prefix = {0};
         switch (r)
         {
-        case RENAME_TYPE:  prefix = conf->type_prefix; break;
-        case RENAME_VAR:   prefix = conf->var_prefix; break;
-        case RENAME_PROC:  prefix = conf->proc_prefix; break;
-        case RENAME_CONST: prefix = conf->const_prefix; break;
+            case RENAME_TYPE:  prefix = conf->type_prefix; break;
+            case RENAME_VAR:   prefix = conf->var_prefix; break;
+            case RENAME_PROC:  prefix = conf->proc_prefix; break;
+            case RENAME_CONST: prefix = conf->const_prefix; break;
         }
         if (prefix.start)
             unprefixed = remove_prefix(orig, prefix, allocator);
     }
-
+    
     String cased;
     switch (r)
     {
-    case RENAME_TYPE:  cased = convert_case(unprefixed, conf->type_case, allocator);  break;
-    case RENAME_VAR:   cased = convert_case(unprefixed, conf->var_case, allocator);   break;
-    case RENAME_PROC:  cased = convert_case(unprefixed, conf->proc_case, allocator);  break;
-    case RENAME_CONST: cased = convert_case(unprefixed, conf->const_case, allocator); break;
+        case RENAME_TYPE:  cased = convert_case(unprefixed, conf->type_case, allocator);  break;
+        case RENAME_VAR:   cased = convert_case(unprefixed, conf->var_case, allocator);   break;
+        case RENAME_PROC:  cased = convert_case(unprefixed, conf->proc_case, allocator);  break;
+        case RENAME_CONST: cased = convert_case(unprefixed, conf->const_case, allocator); break;
     }
-
+    
     if (hashmap_get(rename_map, cased, (void **)&ret) == 0)
         return *ret;
-
+    
     return cased;
 }
 
@@ -502,7 +505,7 @@ b32 is_valid_ident(String ident)
                 return false;
         }
     }
-
+    
     return true;
 }
 
@@ -512,17 +515,17 @@ gbArray(String) get_system_includes(gbAllocator a)
     Find_Result res = find_visual_studio_and_windows_sdk();
     gbArray(String) includes;
     gb_array_init(includes, a);
-
+    
     if (res.windows_sdk_root)
     {
         gb_array_append(includes, make_string(gb_alloc_str(a, gb_ucs2_to_utf8_buf(res.windows_sdk_shared_include_path))));
         gb_array_append(includes, make_string(gb_alloc_str(a, gb_ucs2_to_utf8_buf(res.windows_sdk_um_include_path))));
         gb_array_append(includes, make_string(gb_alloc_str(a, gb_ucs2_to_utf8_buf(res.windows_sdk_ucrt_include_path))));
     }
-
+    
     if (res.vs_include_path)
         gb_array_append(includes, make_string(gb_alloc_str(a, gb_ucs2_to_utf8_buf(res.vs_include_path))));
-
+    
     for (int i = 0; i < gb_array_count(includes); i++)
         gb_printf("FOUND SYSTEM INCLUDE DIRECTORY: %.*s\n", LIT(includes[i]));
     
@@ -534,39 +537,43 @@ void get_gcc_includes (gbArray(String) *includes, gbAllocator a)
     gbArray(char *) platforms;
     gbArray(char *) versions;
     gbArray(char *) entries;
-        
-    gb_array_init(platforms, a);
-    gb_dir_contents("/usr/lib/gcc", &platforms, false);
-    for (int i = 0; i < gb_array_count(platforms); i++)
-    {
-        gb_array_init(versions, a);
-        if (!gb_dir_contents(platforms[i], &versions, false))
-            continue;
-        for (int j = 0 ; j < gb_array_count(versions); j++)
+    
+    /*
+        gb_array_init(platforms, a);
+        gb_dir_contents("/usr/lib/gcc/", &platforms, false);
+        for (int i = 0; i < gb_array_count(platforms); i++)
         {
-            gb_array_init(entries, a);
-            if (!gb_dir_contents(versions[j], &entries, false))
-                continue;
-            for (int k = 0; k < gb_array_count(entries); k++)
-            {
-                String path = make_string(entries[k]);
-                if (cstring_cmp(string_slice(path, path.len-7, -1), "include") == 0)
-                    gb_array_append(*includes, alloc_string(path));
-                else if (cstring_cmp(string_slice(path, path.len-13, -1), "include-fixed") == 0)
-                    gb_array_append(*includes, alloc_string(path));
-            }
-            gb_array_free(entries);
+    */
+    gb_array_init(versions, a);
+    if (!gb_dir_contents("/usr/lib/gcc/x86_64-pc-linux-gnu", &versions, false))
+        return;
+    for (int j = 0 ; j < gb_array_count(versions); j++)
+    {
+        gb_array_init(entries, a);
+        if (!gb_dir_contents(versions[j], &entries, false))
+            continue;
+        for (int k = 0; k < gb_array_count(entries); k++)
+        {
+            String path = make_string(entries[k]);
+            if (cstring_cmp(string_slice(path, path.len-7, -1), "include") == 0)
+                gb_array_append(*includes, alloc_string(path));
+            else if (cstring_cmp(string_slice(path, path.len-13, -1), "include-fixed") == 0)
+                gb_array_append(*includes, alloc_string(path));
         }
-        gb_array_free(versions);
+        gb_array_free(entries);
     }
-    gb_array_free(platforms);
+    gb_array_free(versions);
+    /*
+        }
+        gb_array_free(platforms);
+    */
 }
 
 void get_clang_includes(gbArray(String) *includes, gbAllocator a)
 {
     gbArray(char *) versions;
     gbArray(char *) entries;
-
+    
     gb_array_init(versions, a);
     gb_dir_contents("/usr/lib/clang", &versions, false);
     for (int j = 0 ; j < gb_array_count(versions); j++)
@@ -589,13 +596,13 @@ gbArray(String) get_system_includes(gbAllocator a)
 {
     gbArray(String) includes;
     gb_array_init(includes, a);
-
+    
     if (gb_file_exists("/usr/include"))
         gb_array_append(includes, make_string_alloc(a, "/usr/include"));
     if (gb_file_exists("/usr/local/include"))
         gb_array_append(includes, make_string_alloc(a, "/usr/local/include"));
     
-    if (gb_file_exists("/usr/lib/gcc"))
+    if (gb_file_exists("/usr/lib/gcc/x86_64-pc-linux-gnu"))
         get_gcc_includes(&includes, a);
     else if (gb_file_exists("/usr/lib/clang"))
         get_clang_includes(&includes, a);

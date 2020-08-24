@@ -51,11 +51,11 @@ void init_std_defines(Define_Map **defines)
     add_define(defines, make_string("__TIME__"), make_token_run(time, Token_String), 0, 0, global);
     gb_free(gb_heap_allocator(), date);
     gb_free(gb_heap_allocator(), time);
-
+    
     add_define(defines, make_string("__STDC__"), make_token_run("1", Token_Integer), 0, 0, global);
     add_define(defines, make_string("__STDC_HOSTED__"), make_token_run("1", Token_Integer), 0, 0, global);
     add_define(defines, make_string("__STDC_VERSION__"), make_token_run(STRING(__STDC_VERSION__), Token_Integer), 0, 0, global);
-
+    
     add_define(defines, make_string("__GNUC__"), make_token_run(STRING(__GNUC__), Token_Integer), 0, 0, global);
     add_define(defines, make_string("__GNUC_MINOR__"), make_token_run(STRING(__GNUC_MINOR__), Token_Integer), 0, 0, global);
     add_define(defines, make_string("__GNUC_PATCHLEVEL__"), make_token_run(STRING(GNUC_PATCHLEVEL__), Token_Integer), 0, 0, global);
@@ -70,14 +70,14 @@ void init_std_defines(Define_Map **defines)
     add_define(defines, make_string("__FreeBSD_Kernel__"), make_token_run("1", Token_Integer), 0, 0, global);
 # endif
 #endif
-
+    
 #if defined(__APPLE__)
     add_define(defines, make_string("__APPLE__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
 #if defined(__MACH__)
     add_define(defines, make_string("__MACH__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-
+    
 #if defined(_WIN32)
     add_define(defines, make_string("_WIN32"), make_token_run("1", Token_Integer), 0, 0, global);
 #elif defined(_WIN64)
@@ -89,10 +89,10 @@ void init_std_defines(Define_Map **defines)
 #if defined(_MSVC_LANG)
     add_define(defines, make_string("_MSVC_LANG"), make_token_run(STRING(_MSVC_LANG), Token_Integer), 0, 0, global);
 #endif
-
-/*
- *  AMD64
- */
+    
+    /*
+     *  AMD64
+     */
 #if defined(__x86_64__)
     add_define(defines, make_string("__x86_64__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
@@ -117,10 +117,10 @@ void init_std_defines(Define_Map **defines)
 #if defined(_M_AMD64)
     add_define(defines, make_string("_M_AMD64"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-
-/*
- *  ARM
- */
+    
+    /*
+     *  ARM
+     */
 #if defined(__arm__)
     add_define(defines, make_string("__arm__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
@@ -148,7 +148,7 @@ void init_std_defines(Define_Map **defines)
 #if defined(_ARM_)
     add_define(defines, make_string("_ARM_"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-// ARM64
+    // ARM64
 #if defined(_ARM64_)
     add_define(defines, make_string("_ARM64_"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
@@ -158,10 +158,10 @@ void init_std_defines(Define_Map **defines)
 #if defined(_M_ARM64)
     add_define(defines, make_string("_X86_"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-
-/*
- *  Intel x86
- */
+    
+    /*
+     *  Intel x86
+     */
 #if defined(i386)
     add_define(defines, make_string("i386"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
@@ -204,11 +204,11 @@ void init_std_defines(Define_Map **defines)
 #if defined(__386)
     add_define(defines, make_string("__386"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-
-
-/*
- *  Intel Itanium (IA-64)
- */
+    
+    
+    /*
+     *  Intel Itanium (IA-64)
+     */
 #if defined(__ia64__)
     add_define(defines, make_string("__ia64__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
@@ -230,11 +230,11 @@ void init_std_defines(Define_Map **defines)
 #if defined(__itanium__)
     add_define(defines, make_string("__itanium__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-
-/*
- *  MISC
- */
-
+    
+    /*
+     *  MISC
+     */
+    
 #if defined(__64BIT__)
     add_define(defines, make_string("__64BIT__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
@@ -250,7 +250,7 @@ void init_std_defines(Define_Map **defines)
 #if defined(__ppc64__)
     add_define(defines, make_string("__ppc64__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-
+    
 #if defined(__MIPSEL__)
     add_define(defines, make_string("__MIPSEL__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
@@ -274,10 +274,8 @@ gbArray(Define) get_define_list(Define_Map *defines, String whitelist_dir, gbAll
             !is_valid_ident(token_run_string(defines->entries[i].value.value)) && // Is NOT a valid ident
             has_substring(defines->entries[i].value.file, whitelist_dir) &&       // Is defined in a whitelisted directory
             defines->entries[i].value.value.start)                                // Is NOT zero-length
-        {
-            if (cstring_cmp(defines->entries[i].value.key, "LONG64") == 0)
-                raise(SIGINT);
-            gb_array_append(list, defines->entries[i].value);
-        }
+    {
+        gb_array_append(list, defines->entries[i].value);
+    }
     return list;
 }

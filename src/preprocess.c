@@ -63,17 +63,17 @@ void pp_retreat(Preprocessor *pp) { pp_retreat_n(pp, 1); }
 void pp_push_context(Preprocessor *pp, Token_Run run, PP_Context context, char *file_contents)
 {
     PP_Context *new_head = gb_alloc_item(pp->allocator, PP_Context);
-
+    
     *new_head = context;
     new_head->next = pp->context;
     new_head->tokens = run;
-
-    if (context.in_include && !context.in_macro && !context.in_macro)
+    
+    if (context.in_include && !context.in_macro)
     {
         gb_array_append(pp->file_contents, file_contents);
         gb_array_append(pp->file_tokens, run.start);
     }
-
+    
     pp->context = new_head;
 }
 
@@ -81,7 +81,7 @@ void pp_pop_context(Preprocessor *pp)
 {
     PP_Context *old = pp->context;
     pp->context = old->next;
-
+    
     if (old->in_macro)
         defines_destroy(old->local_defines);
     
@@ -94,7 +94,7 @@ Preprocessor *make_preprocessor(gbArray(Token) tokens, String root_dir, String f
 {
     gbAllocator alloc = gb_heap_allocator();
     Preprocessor *pp = gb_alloc_item(alloc, Preprocessor);
-
+    
     Token_Run tokens_head = {tokens, tokens, tokens + gb_array_count(tokens)};
     PP_Context base_context = {0};
     base_context.filename = filename;
@@ -110,20 +110,20 @@ Preprocessor *make_preprocessor(gbArray(Token) tokens, String root_dir, String f
     gb_array_append(pp->file_tokens, tokens);
     
     pp->line = 1;
-
+    
     pp->allocator = alloc;
     pp->defines = gb_alloc_item(pp->allocator, Define_Map);
     defines_init(pp->defines, pp->allocator);
-
+    
     pp->root_dir = root_dir;
     pp->conf = conf;
-
+    
     gb_array_init(pp->output, alloc);
-
+    
     init_std_defines(&pp->defines);
-
+    
     pp->pragma_onces = hashmap_new(alloc);
-
+    
     gbArray(String) include_files;
     if (conf->pre_includes && hashmap_get(conf->pre_includes, string_slice(filename, root_dir.len+1, -1), (void **)&include_files) == MAP_OK)
     {
@@ -151,7 +151,7 @@ Preprocessor *make_preprocessor(gbArray(Token) tokens, String root_dir, String f
             Token token;
             while ((token = get_token(&tokenizer)).kind != Token_EOF)
                 gb_array_append(include_tokens, token);
-
+            
             Token_Run run = {include_tokens, include_tokens, include_tokens+gb_array_count(include_tokens)-1};
             pp_push_context(pp, run, context, fc.data);
         }
@@ -177,15 +177,15 @@ void destroy_preprocessor(Preprocessor *pp)
         defines_destroy(pp->defines);
         gb_free(pp->allocator, pp->defines);
     }
-
+    
     for (int i = 0; i < gb_array_count(pp->file_contents); i++)
         gb_free(pp->allocator, pp->file_contents[i]);
     gb_array_free(pp->file_contents);
-
+    
     for (int i = 0; i < gb_array_count(pp->file_tokens); i++)
         gb_array_free(pp->file_tokens[i]);
     gb_array_free(pp->file_tokens);
-
+    
     if (pp->output)
         gb_array_free(pp->output);
     gb_free(pp->allocator, pp);
@@ -197,7 +197,7 @@ void pp_parse_macro_args(Preprocessor *pp, gbArray(Token_Run) *args, b32 is_para
     b32 free_args = false;
     if (!*args)
         gb_array_init(*args, pp->allocator);
-
+    
     expect_token(&pp->context->tokens, Token_OpenParen);
     for (;;)
     {
@@ -225,9 +225,10 @@ void pp_parse_macro_args(Preprocessor *pp, gbArray(Token_Run) *args, b32 is_para
         // Remove Backslashes
         if (curr.start->kind == Token_BackSlash) curr.start++;
         if (curr.end->kind   == Token_BackSlash) curr.end--;
-
+        
         if (is_params && curr.start == curr.end && curr.start[0].kind == Token_Ellipsis)
             curr = make_token_run("__VA_ARGS__", Token_Ident);
+        // TokenKind foo = curr.end[1].kind;
         if (!(curr.start[-1].kind == Token_OpenParen
               && curr.end[1].kind == Token_CloseParen
               && curr.end < curr.start
@@ -247,7 +248,7 @@ void pp_write_token_run(Preprocessor *pp, Token_Run to_write)
     // Don't actually write things from includes if `shallow_include` is set
     if (pp->conf->shallow_include && pp->context->in_include && !pp->context->in_sandbox)
         return;
-
+    
     while (to_write.curr <= to_write.end)
     {
         Token tok = to_write.curr[0];
@@ -257,7 +258,7 @@ void pp_write_token_run(Preprocessor *pp, Token_Run to_write)
             to_write.curr++;
             continue;
         }
-
+        
         isize line = tok.loc.line;
         isize col = tok.loc.column;
         isize line_diff, col_diff;
@@ -282,20 +283,20 @@ void pp_write_token_run(Preprocessor *pp, Token_Run to_write)
             else
                 col_diff = col - (pp->context->prev_token->loc.column + pp->context->prev_token->str.len);
         }
-
+        
         if (pp->paste_next)
         {
             line_diff = 0;
             col_diff  = 0;
             pp->paste_next = false;
-
+            
             Token *last = &pp->output[gb_array_count(pp->output)-1];
-
+            
             String new = {gb_alloc(pp->allocator, last->str.len+tok.str.len+1), last->str.len+tok.str.len};
             gb_snprintf(new.start, new.len, "%.*s%.*s", LIT(last->str), LIT(tok.str));
-
+            
             last->str = new;
-
+            
             Define def = pp_get_define(pp, new);
             if (def.in_use)
             {
@@ -316,7 +317,7 @@ void pp_write_token_run(Preprocessor *pp, Token_Run to_write)
             to_write.curr++;
             continue;
         }
-
+        
         pp->write_line += line_diff;
         if (line_diff)
             pp->write_column = col_diff;
@@ -324,7 +325,7 @@ void pp_write_token_run(Preprocessor *pp, Token_Run to_write)
             pp->write_column += col_diff;
         tok.pp_loc.line   = pp->write_line;
         tok.pp_loc.column = pp->write_column;
-
+        
         if (pp->stringify_next ||
             (pp->context->in_macro && pp->context->stringify))
         {
@@ -333,14 +334,14 @@ void pp_write_token_run(Preprocessor *pp, Token_Run to_write)
             tok.kind = Token_String;
             pp->stringify_next = false;
         }
-
+        
         if (pp->context->in_macro || pp->context->in_include)
         {
             tok.from_loc.line   = pp->context->from_line;
             tok.from_loc.column = pp->context->from_column;
             tok.from_loc.file   = pp->context->filename;
         }
-
+        
         gb_array_append(pp->output, tok);
         pp->write_column += tok.str.len;
         pp->context->prev_token = to_write.curr;
@@ -398,16 +399,16 @@ int pp_next_ident_or_directive(Preprocessor *pp, b32 should_write)
     
     if (should_write)
         pp_write_token_run(pp, to_write);
-
+    
     if (peek(pp).kind == Token_Hash)
     {
         pp->context->tokens.curr++;
         return 1;
     }
-
+    
     if (peek(pp).kind == Token_pragma)
         return 1;
-
+    
     if (peek(pp).kind == Token_Ident)
         return 2;
     
@@ -422,42 +423,45 @@ void pp_push_cond(Preprocessor *pp, b32 skip_else)
     pp->conditionals = cond;
 }
 
-Define *pp_unique_defines(Preprocessor *pp, String name)
+Define pp_unique_defines(Preprocessor *pp, String name)
 {
     if (cstring_cmp(name, "__LINE__") == 0)
     {
         char *line_str = gb_alloc(pp->allocator, 24);
         gb_snprintf(line_str, 64, "%ld", pp->line);
-        return &(Define){1, name, make_token_run(line_str, Token_Integer), 0, pp->context->filename, pp->line};
+        return (Define){1, name, make_token_run(line_str, Token_Integer), 0, pp->context->filename, pp->line};
     }
     else if (cstring_cmp(name, "__FILE__") == 0)
     {
         char *file_str = gb_alloc_str_len(pp->allocator, pp->context->filename.start, pp->context->filename.len);
-        return &(Define){1, name, make_token_run(file_str, Token_String), 0, pp->context->filename, pp->line};
+        return (Define){1, name, make_token_run(file_str, Token_String), 0, pp->context->filename, pp->line};
     }
-    return 0;
+    return (Define){0};
 }
 
-Define *pp_custom_symbol(Preprocessor *pp, String name)
+Define pp_custom_symbol(Preprocessor *pp, String name)
 {
     String *val;
     if (pp->conf->custom_symbols
-     && hashmap_get(pp->conf->custom_symbols, name, (void **)&val) == MAP_OK)
+        && hashmap_get(pp->conf->custom_symbols, name, (void **)&val) == MAP_OK)
     {
         Token_Run run = str_make_token_run(*val, Token_String);
         run.start->loc.file = pp->context->filename;
-        return &(Define){1, name, str_make_token_run(*val, Token_Ident), 0, pp->context->filename, pp->line};
+        return (Define){1, name, str_make_token_run(*val, Token_Ident), 0, pp->context->filename, pp->line};
     }
-    return 0;
+    return (Define){0};
 }
 
 Define pp_get_define(Preprocessor *pp, String name)
 {
     Define *define = 0;
-
-    define = pp_unique_defines(pp, name);
-    if (!define && pp->conf->custom_symbols)
-        define = pp_custom_symbol(pp, name);
+    
+    Define temp_define = pp_unique_defines(pp, name);
+    if (!temp_define.in_use && pp->conf->custom_symbols)
+        temp_define = pp_custom_symbol(pp, name);
+    if (temp_define.in_use)
+        define = &temp_define;
+    
     if (!define && pp->context && pp->context->local_defines)
         define = get_define(pp->context->local_defines, name);
     if (!define)
@@ -473,7 +477,7 @@ void pp_do_macro(Preprocessor *pp, Define define, Token name, Token *preceding_t
     String invocation = name.str;
     b32 has_va_args = false;
     Token_Run va_args = {0};
-
+    
     
     gbArray(Token_Run) args;
     if (define.params)
@@ -515,7 +519,7 @@ void pp_do_macro(Preprocessor *pp, Define define, Token name, Token *preceding_t
                 gb_array_append(args, va_args);
             }
         }
-
+        
         invocation.len = (peek_at(pp, -1).str.start - invocation.start) + 1;
         if (gb_array_count(args) != gb_array_count(define.params))
             gb_printf_err("(%.*s:%ld): \x1b[31mERROR:\x1b[0m Expected %ld arguments, but got %ld in macro '%.*s'\n",
@@ -525,7 +529,7 @@ void pp_do_macro(Preprocessor *pp, Define define, Token name, Token *preceding_t
         GB_ASSERT(gb_array_count(args) == gb_array_count(define.params));
     }
     pp->context->prev_token = &peek_at(pp, -1);
-
+    
     isize from_column = name.loc.column;
     isize from_line = name.loc.line;
     if (pp->context->in_macro && pp->context->tokens.start->str.start == name.str.start)
@@ -544,17 +548,17 @@ void pp_do_macro(Preprocessor *pp, Define define, Token name, Token *preceding_t
     new_context.from_column = from_column;
     new_context.preceding_token = preceding_token;
     new_context.in_sandbox = pp->context->in_sandbox;
-    if (pp->stringify_next || (pp->context->stringify))
+    if (pp->stringify_next || pp->context->stringify)
     {
         new_context.stringify = true;
         pp->stringify_next = false;
     }
     
-
+    
     Define_Map *local_defines;
     local_defines = gb_alloc_item(pp->allocator, Define_Map);
     defines_init(local_defines, pp->allocator);
-
+    
     if (define.params)
     {
         for (int i = 0; i < gb_array_count(define.params); i++)
@@ -571,7 +575,7 @@ void pp_do_macro(Preprocessor *pp, Define define, Token name, Token *preceding_t
             add_define(&local_defines, token_run_string(define.params[i]), processed_run, 0, pp->line, pp->context->filename);
         }
     }
-
+    
     if (has_va_args)
     {
         Token_Run va_opt_value;
@@ -585,10 +589,10 @@ void pp_do_macro(Preprocessor *pp, Define define, Token name, Token *preceding_t
         gb_array_append(va_opt_params, make_token_run("x", Token_Ident));
         add_define(&local_defines, make_string("__VA_OPT__"), va_opt_value, va_opt_params, pp->line, pp->context->filename);
     }
-
+    
     add_fake_define(&local_defines, define.key);
     new_context.local_defines = local_defines;
-
+    
     pp_push_context(pp, define.value, new_context, 0);
 }
 
@@ -596,14 +600,14 @@ gbArray(Token) run_pp_sandboxed(Preprocessor *pp, Token_Run *run)
 {
     gbArray(Token) new_output = 0;
     gb_array_init(new_output, pp->allocator);
-
+    
     Preprocessor *temp_pp = gb_alloc_copy(pp->allocator, pp, sizeof(Preprocessor));
     temp_pp->context = 0;
     temp_pp->output = new_output;
     temp_pp->conditionals = 0;
     temp_pp->stringify_next = false;
     temp_pp->paste_next = false;
-
+    
     PP_Context new_context = *pp->context;
     new_context.in_sandbox = true;
     new_context.stringify = false;
@@ -614,7 +618,7 @@ gbArray(Token) run_pp_sandboxed(Preprocessor *pp, Token_Run *run)
     
     pp_push_context(temp_pp, *run, new_context, 0);
     run_pp(temp_pp);
-
+    
     gbArray(Token) output_ret = temp_pp->output;
     gb_free(pp->allocator, temp_pp);
     
@@ -625,7 +629,7 @@ gbArray(Token) pp_do_sandboxed_macro(Preprocessor *pp, Token_Run *run, Define de
 {
     gbArray(Token) new_output = 0;
     gb_array_init(new_output, pp->allocator);
-
+    
     Preprocessor *temp_pp = gb_alloc_copy(pp->allocator, pp, sizeof(Preprocessor));
     temp_pp->context = 0;
     temp_pp->output = new_output;
@@ -635,19 +639,19 @@ gbArray(Token) pp_do_sandboxed_macro(Preprocessor *pp, Token_Run *run, Define de
     
     gb_array_init(temp_pp->file_contents, pp->allocator);
     gb_array_init(temp_pp->file_tokens, pp->allocator);
-
+    
     PP_Context context = {0};
     context.filename = pp->context->filename;
     context.in_sandbox = true;
-
+    
     if (run)
         pp_push_context(temp_pp, *run, context, 0);
     pp_do_macro(temp_pp, define, name, 0);
     run_pp(temp_pp);
-
+    
     gbArray(Token) output_ret = temp_pp->output;
     gb_free(pp->allocator, temp_pp);
-
+    
     return output_ret;
 }
 
@@ -655,7 +659,7 @@ gbArray(Token) pp_do_sandboxed_macro(Preprocessor *pp, Token_Run *run, Define de
 Token_Run pp_get_line(Preprocessor *pp)
 {
     isize curr_line = peek(pp).loc.line;
-
+    
     if (peek(pp).kind == Token_Comment)
     {
         pp_advance(pp);
@@ -744,12 +748,12 @@ void directive_define(Preprocessor *pp)
         if (def_token.str.start)
             break;
     }
-
+    
     if (!def_token.str.start)
         def_token = expect_token(&pp->context->tokens, Token_Ident);
     String def_name = def_token.str;
 	isize def_line = def_token.loc.line;
-
+    
     gbArray(Token_Run) params = 0;
     if (peek(pp).kind == Token_OpenParen &&
         peek(pp).loc.column == def_token.loc.column + def_token.str.len)
@@ -776,11 +780,11 @@ void directive_undef(Preprocessor *pp)
         if (def_token.str.start)
             break;
     }
-
+    
     if (!def_token.str.start)
         def_token = expect_token(&pp->context->tokens, Token_Ident);
     String def_name = def_token.str;
-
+    
     // String name = expect_token(&pp->context->tokens, Token_Ident).str;
     remove_define(&pp->defines, def_name);
 }
@@ -858,10 +862,10 @@ void _directive_include(Preprocessor *pp, b32 next)
             }
         }
     }
-
+    
     normalize_path(filename);
     String root_dir = dir_from_path(pp->context->filename);
-
+    
     char path[512];
     gbFileContents fc = {0};
     if (local_first && !next)
@@ -892,9 +896,9 @@ void _directive_include(Preprocessor *pp, b32 next)
     context.from_filename = pp->context->filename;
     context.from_line = from_line;
     context.in_sandbox = pp->context->in_sandbox;
-
+    
     gbArray(Token) tokens;
-
+    
     if (fc.data)
     {
         if (hashmap_exists(pp->pragma_onces, context.filename))
@@ -937,15 +941,15 @@ void directive_ifdef(Preprocessor *pp, b32 invert)
 void directive_if(Preprocessor *pp)
 {
     Token_Run expr = pp_get_line(pp);
-
+    
     Expr *parsed = pp_parse_expression(expr, pp->allocator, pp, true);
     u64 res = pp_eval_expression(pp, parsed);
-
+    
     _directive_conditional(pp, res, false);
     
     free_expr(pp->allocator, parsed);
 }
-    
+
 void directive_elif(Preprocessor *pp)
 {
     if (pp->conditionals->skip_else)
@@ -956,7 +960,7 @@ void directive_elif(Preprocessor *pp)
     else
     {
         Token_Run expr = pp_get_line(pp);
-
+        
         Expr *parsed = pp_parse_expression(expr, pp->allocator, pp, true);
         u64 res = pp_eval_expression(pp, parsed);
         
@@ -1009,7 +1013,7 @@ void directive_pragma(Preprocessor *pp)
 void keyword_pragma(Preprocessor *pp)
 {
     Token_Run pragma = {&peek_at(pp, 1), &peek_at(pp, 1), 0};
-                
+    
     int skip_parens = 0;
     do {
         if (peek(pp).kind == Token_OpenParen) skip_parens++;
@@ -1138,8 +1142,8 @@ void run_pp(Preprocessor *pp)
                         gb_array_free(args_temp);
                     }
                     else if (pp->paste_next
-                        && cstring_cmp(define.key, "__VA_ARGS__") == 0
-                        && pp->output[gb_array_count(pp->output)-1].kind == Token_Comma)
+                             && cstring_cmp(define.key, "__VA_ARGS__") == 0
+                             && pp->output[gb_array_count(pp->output)-1].kind == Token_Comma)
                     {
                         gb_array_resize(pp->output, gb_array_count(pp->output)-1);
                         pp->paste_next = false;
@@ -1176,7 +1180,7 @@ gbArray(Define) pp_dump_defines(Preprocessor *pp, String whitelist_dir)
         output = run_pp_sandboxed(pp, &defines[i].value);
         defines[i].value = (Token_Run){output, output, output+gb_array_count(output)-1};
     }
-
+    
     return defines;
 }
 
@@ -1187,17 +1191,17 @@ void pp_print(Preprocessor *pp, char *filename)
     gbFile *pp_out_file = gb_alloc_item(a, gbFile);
     create_path_to_file(filename);
     gb_file_create(pp_out_file, filename);
-
+    
     Token prev_token = {0};
     String prev_token_string = {0};
     i32 prev_token_length = 0;
-
+    
     for (int i = 0; i < gb_array_count(pp->output); i++)
     {
         Token token = pp->output[i];
-
+        
         String token_string = token.str;
-
+        
         i32 newline = 0;
         i32 num_spaces = 0;
         if (i > 0)
@@ -1206,23 +1210,23 @@ void pp_print(Preprocessor *pp, char *filename)
             if (!newline)
                 num_spaces = token.pp_loc.column - (prev_token.pp_loc.column+prev_token.str.len);
         }
-
+        
         // char *newlines = gb_alloc(a, newline+1);
         // gb_memset(newlines, '\n', newline);
-
+        
         char *spaces = gb_alloc(a, num_spaces+1);
         gb_memset(spaces, ' ', num_spaces);
-            
+        
         char *indentation = 0;
         if (newline && token.pp_loc.column > 0)
         {
             indentation = gb_alloc(a, token.pp_loc.column+1);
             gb_memset(indentation, ' ', token.pp_loc.column);
         }
-
+        
         b32 is_string = token.kind == Token_String;
         b32 is_char = token.kind == Token_Char;
- 
+        
         /* gb_fprintf(pp_out_file, "%s%s%s%c%.*s%c", */
         /*            newlines, */
         /*            indentation, */
@@ -1230,7 +1234,7 @@ void pp_print(Preprocessor *pp, char *filename)
         /*            is_string?'"':is_char?'\'':0, */
         /*            LIT(token_string), */
         /*            is_string?'"':is_char?'\'':0); */
-            
+        
         gb_fprintf(pp_out_file, "%c%c%s%s%c%.*s%c",
                    newline?'\n':0,
                    newline > 1?'\n':0,
@@ -1239,7 +1243,7 @@ void pp_print(Preprocessor *pp, char *filename)
                    is_string?'"':is_char?'\'':0,
                    LIT(token_string),
                    is_string?'"':is_char?'\'':0);
-            
+        
         // gb_free(a, newlines);
         gb_free(a, spaces);
         prev_token = token;

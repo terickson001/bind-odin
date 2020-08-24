@@ -10,21 +10,9 @@
 #include "gb/gb.h"
 
 /* String helper functions */
-int string_cmp(String a, String b);
-int cstring_cmp(String a, char const *b);
-int csubstring_cmp(String a, char const *b);
-b32 has_substring(String str, String substr);
-b32 has_prefix(String str, String prefix);
-
-String string_slice(String str, int start, int end);
-
 Token_Run alloc_token_run(Token *tokens, int count);
 
-String dir_from_path(String path);
-String path_base_name(char *filename);
 void create_path_to_file(char const *filename);
-
-char *make_cstring(gbAllocator alloc, String str);
 
 /* Time helper functions */
 char *date_string(u64 time);
