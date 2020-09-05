@@ -51,15 +51,15 @@ void init_std_defines(Define_Map **defines)
     add_define(defines, make_string("__TIME__"), make_token_run(time, Token_String), 0, 0, global);
     gb_free(gb_heap_allocator(), date);
     gb_free(gb_heap_allocator(), time);
-    
+
     add_define(defines, make_string("__STDC__"), make_token_run("1", Token_Integer), 0, 0, global);
     add_define(defines, make_string("__STDC_HOSTED__"), make_token_run("1", Token_Integer), 0, 0, global);
     add_define(defines, make_string("__STDC_VERSION__"), make_token_run(STRING(__STDC_VERSION__), Token_Integer), 0, 0, global);
-    
+
     add_define(defines, make_string("__GNUC__"), make_token_run(STRING(__GNUC__), Token_Integer), 0, 0, global);
     add_define(defines, make_string("__GNUC_MINOR__"), make_token_run(STRING(__GNUC_MINOR__), Token_Integer), 0, 0, global);
     add_define(defines, make_string("__GNUC_PATCHLEVEL__"), make_token_run(STRING(GNUC_PATCHLEVEL__), Token_Integer), 0, 0, global);
-    
+
 #if defined(__unix__)
     add_define(defines, make_string("__unix__"), make_token_run("1", Token_Integer), 0, 0, global);
 # if defined(__linux__)
@@ -70,26 +70,32 @@ void init_std_defines(Define_Map **defines)
     add_define(defines, make_string("__FreeBSD_Kernel__"), make_token_run("1", Token_Integer), 0, 0, global);
 # endif
 #endif
-    
+
 #if defined(__APPLE__)
     add_define(defines, make_string("__APPLE__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
 #if defined(__MACH__)
     add_define(defines, make_string("__MACH__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-    
+
 #if defined(_WIN32)
     add_define(defines, make_string("_WIN32"), make_token_run("1", Token_Integer), 0, 0, global);
-#elif defined(_WIN64)
+#endif
+#if defined(_WIN64)
     add_define(defines, make_string("_WIN64"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
 #if defined(_MSC_VER)
     add_define(defines, make_string("_MSC_VER"), make_token_run(STRING(_MSC_VER), Token_Integer), 0, 0, global);
 #endif
+    /*
+#if defined(_MSC_EXTENSIONS)
+    add_define(defines, make_string("_MSC_EXTENSIONS"), make_token_run("1", Token_Integer), 0, 0, global);
+#endif
+    */
 #if defined(_MSVC_LANG)
     add_define(defines, make_string("_MSVC_LANG"), make_token_run(STRING(_MSVC_LANG), Token_Integer), 0, 0, global);
 #endif
-    
+
     /*
      *  AMD64
      */
@@ -117,7 +123,7 @@ void init_std_defines(Define_Map **defines)
 #if defined(_M_AMD64)
     add_define(defines, make_string("_M_AMD64"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-    
+
     /*
      *  ARM
      */
@@ -158,7 +164,7 @@ void init_std_defines(Define_Map **defines)
 #if defined(_M_ARM64)
     add_define(defines, make_string("_X86_"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-    
+
     /*
      *  Intel x86
      */
@@ -204,8 +210,8 @@ void init_std_defines(Define_Map **defines)
 #if defined(__386)
     add_define(defines, make_string("__386"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-    
-    
+
+
     /*
      *  Intel Itanium (IA-64)
      */
@@ -230,11 +236,11 @@ void init_std_defines(Define_Map **defines)
 #if defined(__itanium__)
     add_define(defines, make_string("__itanium__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-    
+
     /*
      *  MISC
      */
-    
+
 #if defined(__64BIT__)
     add_define(defines, make_string("__64BIT__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
@@ -250,7 +256,7 @@ void init_std_defines(Define_Map **defines)
 #if defined(__ppc64__)
     add_define(defines, make_string("__ppc64__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
-    
+
 #if defined(__MIPSEL__)
     add_define(defines, make_string("__MIPSEL__"), make_token_run("1", Token_Integer), 0, 0, global);
 #endif
@@ -263,7 +269,7 @@ void init_std_defines(Define_Map **defines)
 }
 #undef STRING
 
-gbArray(Define) get_define_list(Define_Map *defines, String whitelist_dir, gbAllocator alloc)
+gbArray(Define) get_define_list(Define_Map *defines, String whitelist_dir, b32 shallow, gbAllocator alloc)
 {
     gbArray(Define) list;
     gb_array_init(list, alloc);
@@ -272,7 +278,7 @@ gbArray(Define) get_define_list(Define_Map *defines, String whitelist_dir, gbAll
             !defines->entries[i].value.params &&                                  // Is NOT function style
             cstring_cmp(defines->entries[i].value.file, "GLOBAL") != 0 &&         // Is NOT a globally defined macro
             !is_valid_ident(token_run_string(defines->entries[i].value.value)) && // Is NOT a valid ident
-            has_substring(defines->entries[i].value.file, whitelist_dir) &&       // Is defined in a whitelisted directory
+            (!shallow || has_substring(defines->entries[i].value.file, whitelist_dir)) &&       // Is defined in a whitelisted directory
             defines->entries[i].value.value.start)                                // Is NOT zero-length
     {
         gb_array_append(list, defines->entries[i].value);

@@ -1,0 +1,23 @@
+::/general
+files = [./test/Windows.h]
+output-file = ./test/Windows.odin
+
+::/preprocess
+shallow-include = false
+
+::/bind
+package = win32
+libraries = [
+  kernel32.lib
+  user32.lib
+  ole32.lib
+  shell32.lib
+  gdi32.lib
+  comdlg32.lib
+  bcrypt.lib
+  advapi32.lib
+  winmm.lib
+  opengl32.lib
+  synchronization.lib
+  oleaut32.lib
+]

@@ -185,7 +185,10 @@ void trim_space_from_end_of_token(Token *token);
 Token get_token(Tokenizer *t);
 
 // String get_token_string(Token token);
+void print_token_run(Token_Run run);
 String token_run_string(Token_Run run);
+String token_run_string_alloc(Token_Run run);
+Token *make_token(char *str, TokenKind kind);
 Token_Run make_token_run(char *str, TokenKind kind);
 Token_Run str_make_token_run(String str, TokenKind kind);
 

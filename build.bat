@@ -12,7 +12,8 @@ set compiler_warnings= ^
 	-wd4100 -wd4101 -wd4127 -wd4189 ^
 	-wd4201 -wd4204 ^
 	-wd4456 -wd4457 -wd4480 ^
-	-wd4512 -wd4244 -wd4129
+	-wd4512 -wd4244 -wd4129 ^
+	-wd4214 -wd4200
 
 set compiler_includes=-Iinclude -Ilib
 set libs= ^
@@ -34,4 +35,3 @@ cl %compiler_settings% /TC "src\*.c" ^
 
 del *.obj > NUL 2> NUL
 
-:end_of_build

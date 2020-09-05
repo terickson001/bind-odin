@@ -3,7 +3,7 @@
 
    This is an example config file, showing all the currently available settings
    The filled in settings are the settings which I used to bind X11
-   
+
    Sections are labeled with `::/section-name`
    Booleans are either `true` or `false`
    Strings are denoted with `"` `"`
@@ -12,8 +12,8 @@
        - Map entries are written KEY:VALUE
        - Map values may either be Strings or Lists
          (NOTE: currently, whitespace is disallowed between any of these tokens)
-   
-   Maps, Lists and Strings may span multiple lines
+
+   Maps, Lists, and Strings may span multiple lines
 
    Single line comments start with `#` and go to the end of the line
    This block is a multiline comment
@@ -24,10 +24,12 @@
 directory        = ./X11        # Directory to search for files to bind
 output-directory = ./test/xlib/ # Directory to output bindings
 # files = []                    # List of files to bind
-# output-file =                 # File to output bindings to (only allowed if input is a single file)
+# output-file =                 # File to output bindings to
+# (NOTE: output-file is only allowed if input is a single file)
 
 ::/preprocess
-# include-dirs = [/usr/include/libdrm /usr/include/xorg] # Include directories (i.e: -I<file>)
+include-dirs = [/usr/include/libdrm /usr/include/xorg] # Include directories (i.e: -I<file>)
+symbols = [SOME_SYMBOL:1] # Custom preprocessor symbols (i.e: -D<symbol>[=<value>])
 
 #> pre-includes:
 
@@ -35,7 +37,7 @@ output-directory = ./test/xlib/ # Directory to output bindings
    be included directly, and as a result, may require macros that
    are `#define`d in another parent header.
 
-   This option maps the path of the file to pre-include for to
+   This option maps the path of the file requring the pre-includes to
    a list of files to pre-include.
       i.e.: `{ extensions/XKBstr.h:[Xlib.h] }` will pre-include `./X11/Xlib.h`
             when processing `./X11/extensions/XKBstr.h`
@@ -45,29 +47,27 @@ output-directory = ./test/xlib/ # Directory to output bindings
 pre-includes = {
     extensions/XKBstr.h:[Xlib.h]
 }
-    
-# If set to `true` don't bind anything found in includes
-shallow-include = false
-    
+
 ::/bind
-package     = xlib # Package name to be used for the bindings
-lib         = X11  # Foreign library to link to
+package   = xlib  # Package name to be used for the bindings
+libraries = [X11] # List of foreign libraries to link to
+
 
 #> [class-]prefix: (Default: "")
 
    Prefixes to be removed from identifiers of the corresponding [class]
    `prefix = "X"` sets every class' prefixes.
-   
+
    NOTE: prefixes are removed after leading underscores as well.
        i.e: `_Xdebug` becomes `_debug` after removing the prefix "X"
 >#
 prefix       = X
-# var-prefix   = 
+# var-prefix   =
 # type-prefix  =
 # proc-prefix  =
 # const-prefix =
 
-### Ada_Case, snake_case, SCREAMING_SNAKE_CASE or NONE (Defualt: NONE)
+### Ada_Case, snake_case, SCREAMING_SNAKE_CASE or NONE (Default: NONE)
 # type-case   = Ada_Case
 # var-case    = snake_case
 # proc-case   = snake_case
@@ -75,9 +75,12 @@ prefix       = X
 
 # Whether or not to convert `char *` to `cstring`
 use-cstring   = true
-#> Ordering: (Default: SORTED)
 
+#> Ordering: (Default: SORTED)  -- DEPRECATED --
     SORTED ordering prints in the order `[Defines Types Variables Procedures]`
     SOURCE ordering prints in the same order found in the header
 >#
 ordering = SORTED
+
+# Shallow Bind: When true, will not bind anything found through an `#include` directive
+shallow-bind = true

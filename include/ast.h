@@ -19,7 +19,7 @@ typedef enum VarDeclKind
     VarDecl_AnonBitfield,
     VarDecl_Typedef,
 } VarDeclKind;
-    
+
 #define NODE_KINDS                                                      \
     NODE_KIND(Ident, "identifier", struct {                             \
             Token token;                                                \
@@ -199,6 +199,8 @@ NODE_KIND(_TypeBegin, "", b32)                                          \
             Token token;                                                \
             Node *name;                                                 \
             Node *fields;                                               \
+            b32 has_bitfield;                                           \
+            b32 only_bitfield;                                          \
     })                                                                  \
     NODE_KIND(UnionType, "union type", struct {                         \
             Token token;                                                \
@@ -213,6 +215,7 @@ NODE_KIND(_TypeBegin, "", b32)                                          \
     NODE_KIND(FunctionType, "function type", struct {                   \
             Node *ret_type;                                             \
             Node *params;                                               \
+            Token calling_convention;                                   \
     })                                                                  \
     NODE_KIND(BitfieldType, "bitfield type", struct {                   \
             Node *type;                                                 \
@@ -248,7 +251,7 @@ typedef struct Node {
     i32 index;
     b32 no_print;
     b32 is_opaque;
-    
+
     union {
 #define NODE_KIND(KIND_, DESC_, ...) Node_##KIND_ KIND_;
         NODE_KINDS
@@ -259,14 +262,15 @@ typedef struct Node {
 typedef struct Ast_File
 {
     char *filename;
-
+    char *output_filename;
+    
     gbArray(Node *) all_nodes;
 
     gbArray(Node *) tpdefs;
     gbArray(Node *) records;
     gbArray(Node *) functions;
     gbArray(Node *) variables;
-    
+
     gbArray(Define) raw_defines;
     gbArray(Node *) defines;
 } Ast_File;
@@ -283,5 +287,6 @@ TypeInfo get_type_info(Node *type);
 
 void print_ast_node(Node *node);
 void print_ast_file(Ast_File file);
-    
+Token *node_token(Node *node);
+
 #endif

@@ -20,15 +20,15 @@ Token expect_token(Token_Run *run, TokenKind kind)
         return (Token){0};
     }
     run->curr++;
-    return tok;    
+    return tok;
 }
 
 Token expect_tokens(Token_Run *run, isize n, ...)
 {
     va_list va;
-    Token ret;
+    Token ret = {0};
     b32 found = false;
-    
+
     va_start(va, n);
     for (int i = 0; i < n; i++)
     {
@@ -47,6 +47,6 @@ Token expect_tokens(Token_Run *run, isize n, ...)
         syntax_error(run->curr[0], "Unexpected token '%s'(%d)", TokenKind_Strings[run->curr->kind], run->curr->kind);
         return (Token){0};
     }
-    
+
     return ret;
 }

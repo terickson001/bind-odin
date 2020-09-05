@@ -21,6 +21,7 @@ typedef struct Parser
     b32 no_backtrack;
 
     map_t type_table;
+    map_t opaque_types;
     
     Ast_File file;
 } Parser;

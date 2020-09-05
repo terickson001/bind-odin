@@ -13,6 +13,7 @@
 
 #include "util.h"
 #include "strings.h"
+#include "symbol.h"
 
 const char *HELP_TEXT =
 "Usage: bind-odin [options] file...\n"
@@ -37,11 +38,11 @@ int main(int argc, char **argv)
     gb_printf("%s\n", date_string(gb_utc_time_now()));
     enable_console_colors();
     gbAllocator a = gb_heap_allocator();
-    
+
     gbArray(Bind_Task) tasks;
     Config *conf = init_options(argc, argv, &tasks);
     print_config(conf);
-    
+
     bind_generate(conf, tasks);
     gb_printf("DONE!\n");
 }
@@ -50,7 +51,7 @@ void enable_console_colors()
 {
 #ifdef GB_SYSTEM_WINDOWS
     HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-    u32 mode;
+    DWORD mode;
     GetConsoleMode(h, &mode);
     SetConsoleMode(h, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #else
@@ -62,7 +63,7 @@ void enable_console_colors()
 Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
 {
     gbAllocator a = gb_heap_allocator();
-    
+
     Config *conf = gb_alloc_item(a, Config);
     *conf = (Config){0};
     char *output = 0;
@@ -85,7 +86,7 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
                               argv[i], argv[i+1], LIT(out));
                 gb_exit(1);
             }
-            
+
             if (gb_file_is_dir(argv[i+1]))
             {
                 conf->out_directory = make_string(argv[i+1]);
@@ -142,11 +143,11 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
             conf->bind_conf.package_name = make_string(argv[i+1]);
             i++;
         }
-        else if ((gb_strcmp(argv[i], "-l") == 0 || gb_strcmp(argv[i], "--link") == 0) && i+1 < argc)
-        {
-            conf->bind_conf.lib_name = make_string(argv[i+1]);
-            i++;
-        }
+//         else if ((gb_strcmp(argv[i], "-l") == 0 || gb_strcmp(argv[i], "--link") == 0) && i+1 < argc)
+//         {
+//             conf->bind_conf.lib_name = make_string(argv[i+1]);
+//             i++;
+//         }
         else if ((gb_strcmp(argv[i], "-w") == 0 || gb_strcmp(argv[i], "--whitelist") == 0) && i+1 < argc)
         {
             conf->pp_conf.whitelist = make_string(argv[i+1]);
@@ -171,7 +172,7 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
                     break;
                 curr = argv[i];
             }
-            
+
             char *start = curr;
             while (*curr)
             {
@@ -264,8 +265,8 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
             gb_printf_err("Unknown option '%s'\n", argv[i]);
         }
     }
-    
-    
+
+
     if (!conf->files && !conf->directory.start)
     {
         gb_printf_err("No .c or .h file specified\n");
@@ -276,7 +277,7 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
         gb_printf_err("Output location must be a directory when supplying multiple inputs\n");
         gb_exit(1);
     }
-    
+
     gbArray(Bind_Task) tasks;
     gb_array_init(tasks, a);
     if (conf->directory.start)
@@ -305,7 +306,7 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
         for (int i = 0; i < gb_array_count(conf->files); i++)
             gb_array_append(tasks, ((Bind_Task){{0}, conf->files[i], {0}}));
     }
-    
+
     for (int i = 0 ; i < gb_array_count(tasks); i++)
     {
         String base_name = str_path_base_name(tasks[i].input_filename);
@@ -316,7 +317,7 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
             root_dir = conf->out_directory;
             if (root_dir.start[root_dir.len-1] != GB_PATH_SEPARATOR)
                 root_dir.start[root_dir.len++] = GB_PATH_SEPARATOR;
-            
+
             if (conf->directory.start && tasks[i].input_filename.start+tasks[i].root_dir.len+1 != base_name.start)
             {
                 sub_dir = string_slice(tasks[i].input_filename, tasks[i].root_dir.len+1, -1);
@@ -329,23 +330,23 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
             root_dir = conf->out_file;
             root_dir.len = base_name.start - conf->out_file.start;
         }
-        
+
         int base_length = root_dir.len + sub_dir.len + base_name.len;
         if (sub_dir.start) base_length++;
-        
+
         tasks[i].output_filename.start = (char *)gb_alloc(a, base_length+6);
         tasks[i].output_filename.len = base_length+5;
         gb_snprintf(tasks[i].output_filename.start, base_length+5,
                     "%.*s%.*s%c%.*s.odin", LIT(root_dir), LIT(sub_dir), sub_dir.start?'-':0, LIT(base_name));
-        
+
         gb_printf("TASK #%d:\n  root: %.*s\n  input: %.*s\n  output: %.*s\n\n",
                   i,
                   LIT(root_dir),
                   LIT(tasks[i].input_filename),
                   LIT(tasks[i].output_filename));
-        
+
     }
-    
+
     *out_tasks = tasks;
     return conf;
 }

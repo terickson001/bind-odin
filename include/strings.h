@@ -12,7 +12,9 @@ typedef struct String
 } String;
 
 String make_string_alloc(gbAllocator alloc, char *str);
+String make_string_allocn(gbAllocator alloc, char *str, int n);
 String make_string(char *str);
+String make_stringn(char *str, int n);
 String alloc_string(String str);
 String empty_string();
 char *make_cstring(gbAllocator alloc, String str);
@@ -25,6 +27,8 @@ String string_slice(String str, int start, int end);
 i32 str_last_occurence(String str, char c);
 String str_path_base_name(String filename);
 String path_base_name(char *filename);
+String str_path_file_name(String path);
+String path_file_name(char *path);
 void normalize_path(String path);
 String dir_from_path(String path);
 

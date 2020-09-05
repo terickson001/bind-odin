@@ -2,6 +2,7 @@
 
 #include "gb/gb.h"
 #include "stdarg.h"
+#include <signal.h>
 
 void warning(Token tok, char const *fmt, ...)
 {

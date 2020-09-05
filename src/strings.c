@@ -8,9 +8,22 @@ String make_string_alloc(gbAllocator alloc, char *str)
     return ret;
 }
 
+String make_string_allocn(gbAllocator alloc, char *str, int n)
+{
+    String ret;
+    ret.len = gb_strnlen(str, n);
+    ret.start = gb_alloc_str_len(alloc, str, ret.len);
+    return ret;
+}
+
 String make_string(char *str)
 {
     return (String){str, gb_strlen(str)};
+}
+
+String make_stringn(char *str, int n)
+{
+    return (String){str, gb_strnlen(str, n)};
 }
 
 String empty_string()
@@ -67,7 +80,7 @@ b32 has_substring(String str, String substr)
         if (j == substr.len)
             return true;
     }
-    
+
     return false;
 }
 
@@ -99,7 +112,7 @@ String str_path_base_name(String filename)
     GB_ASSERT_NOT_NULL(filename.start);
     ls = str_last_occurence(filename, GB_PATH_SEPARATOR);
     ld = str_last_occurence(filename, '.');
-    
+
     return string_slice(filename, ls+1, ld);
 }
 
@@ -110,7 +123,7 @@ String path_base_name(char *filename)
     GB_ASSERT_NOT_NULL(filename);
     ls = (char *)gb_char_last_occurence(filename, GB_PATH_SEPARATOR);
     ld = (char *)gb_char_last_occurence(filename, '.');
-    
+
     String ret = {0, 0};
     if (ls)
     {
@@ -128,8 +141,37 @@ String path_base_name(char *filename)
         else
             ret.len = gb_strlen(ret.start);
     }
-    
+
     return ret;
+}
+
+String path_file_name(char *path)
+{
+    char *ls;
+    GB_ASSERT_NOT_NULL(path);
+    ls = (char *)gb_char_last_occurence(path, GB_PATH_SEPARATOR);
+
+    String ret = {0, 0};
+    if (ls)
+    {
+        ret.start = ls+1;
+        ret.len = gb_strlen(ret.start);
+    }
+    else
+    {
+        ret.start = path;
+        ret.len = gb_strlen(ret.start);
+    }
+
+    return ret;
+}
+
+String str_path_file_name(String filename)
+{
+    GB_ASSERT_NOT_NULL(filename.start);
+    i32 ls = str_last_occurence(filename, GB_PATH_SEPARATOR);
+
+    return string_slice(filename, ls+1, -1);
 }
 
 void normalize_path(String path)
@@ -147,7 +189,7 @@ String dir_from_path(String path)
     while (*slash != GB_PATH_SEPARATOR && slash > dir.start)
         slash--;
     dir.len = slash-dir.start+1;
-    
+
     return dir;
 }
 

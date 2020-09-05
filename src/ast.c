@@ -21,14 +21,14 @@ TypeInfo get_type_info(Node *type)
             ti.is_const = true;
             continue;
         case NodeKind_BitfieldType:
-            type = type->BitfieldType.type;
+            //type = type->BitfieldType.type;
             ti.is_bitfield = true;
-            continue;
+            break;
         default: break;
         }
         break;
     }
-    
+
     ti.base_type = type;
     return ti;
 }
@@ -99,12 +99,12 @@ void __print_node(Node *node, int depth)
             case VarDecl_Field:
                 gb_printf(";");
                 break;
-                
+
             case VarDecl_Parameter:
             case VarDecl_NamelessParameter:
                 if (gb_array_count(node->VarDeclList.list) != i+1)
                 gb_printf(",");
-                
+
             case VarDecl_Variable:
             default:
                 break;
@@ -203,4 +203,51 @@ void print_ast_file(Ast_File file)
 {
     for (int i = 0; i < gb_array_count(file.all_nodes); i++)
         print_ast_node(file.all_nodes[i]);
+}
+
+Token *node_token(Node *node)
+{
+    switch (node->kind)
+    {
+    case NodeKind_Ident: return &node->Ident.token;
+    case NodeKind_IntegerType:  return &node->IntegerType.specifiers[0];
+    case NodeKind_FloatType:  return &node->FloatType.specifiers[0];
+    case NodeKind_PointerType:  return &node->PointerType.token;
+    case NodeKind_ConstType:  return &node->ConstType.token;
+    case NodeKind_FunctionDecl: return node_token(node->FunctionDecl.type);
+    case NodeKind_FunctionType: return node_token(node->FunctionType.ret_type);
+    case NodeKind_ArrayType: return node_token(node->ArrayType.type);
+    case NodeKind_StructType: return &node->StructType.token;
+    case NodeKind_UnionType: return &node->UnionType.token;
+    case NodeKind_EnumType: return &node->EnumType.token;
+    case NodeKind_BitfieldType: return node_token(node->BitfieldType.type);
+    case NodeKind_VarDeclList: return node_token(node->VarDeclList.list[0]);
+    case NodeKind_VarDecl: return node_token(node->VarDecl.type);
+    case NodeKind_EnumFieldList: return node_token(node->EnumFieldList.fields[0]);
+    case NodeKind_EnumField: return node_token(node->EnumField.name);
+    case NodeKind_VaArgs: return &node->VaArgs.token;
+    case NodeKind_Typedef: return &node->Typedef.token;
+    case NodeKind_BasicLit: return &node->BasicLit.token;
+    case NodeKind_UnaryExpr: return &node->UnaryExpr.op;
+    case NodeKind_BinaryExpr: return node_token(node->BinaryExpr.left);
+    case NodeKind_TernaryExpr: return node_token(node->TernaryExpr.cond);
+    case NodeKind_IncDecExpr: return node_token(node->IncDecExpr.expr);
+    case NodeKind_CallExpr: return node_token(node->CallExpr.func);
+    case NodeKind_ParenExpr: return &node->ParenExpr.open;
+    case NodeKind_IndexExpr: return node_token(node->IndexExpr.expr);
+    case NodeKind_SelectorExpr: return node_token(node->SelectorExpr.expr);
+    case NodeKind_TypeCast: return &node->TypeCast.open;
+    case NodeKind_ExprList: return node_token(node->ExprList.list[0]);
+    case NodeKind_EmptyStmt: return &node->EmptyStmt.token;
+    case NodeKind_ExprStmt: return node_token(node->ExprStmt.expr);
+    case NodeKind_AssignStmt: return node_token(node->AssignStmt.lhs);
+    case NodeKind_IfStmt: return &node->IfStmt.token;
+    case NodeKind_ForStmt: return &node->ForStmt.token;
+    case NodeKind_WhileStmt: return &node->WhileStmt.token;
+    case NodeKind_ReturnStmt: return &node->ReturnStmt.token;
+    case NodeKind_SwitchStmt: return &node->SwitchStmt.token;
+    case NodeKind_CaseStmt: return &node->CaseStmt.token;
+    case NodeKind_Define:   return node_token(node->Define.value);
+    default: return 0;
+    }
 }

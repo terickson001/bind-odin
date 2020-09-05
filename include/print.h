@@ -9,25 +9,27 @@
 
 typedef struct Printer
 {
-     
+
      Ast_File file;
      gbFile *out_file;
      Package package;
      
      map_t rename_map;
      BindConfig *conf;
-     
+
      map_t wrap_rename_map;
      WrapConfig *wrap_conf;
-     
+
      b32 source_order;
-     
+
      int proc_link_padding;
      int proc_name_padding;
-     
+
      int var_link_padding;
      int var_name_padding;
-     
+
+     gbArray(Node *) needs_opaque_def;
+
      gbAllocator allocator;
 } Printer;
 

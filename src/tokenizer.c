@@ -55,9 +55,9 @@ Token tokenize_number(Tokenizer *t)
     token.kind = Token_Integer;
     token.loc.line = t->line;
     token.loc.column = token.str.start - t->line_start;
-    
+
     token.pp_loc = token.loc;
-    
+
     int base = 10;
     if (t->curr[1] == 'x' || t->curr[1] == 'X')
     {
@@ -147,7 +147,38 @@ Token get_token(Tokenizer *t)
                 break;
             }
         }
-        
+
+        // Not a Keyword
+        if (token.kind == Token_Ident && cstring_cmp(token.str, "L") == 0)
+        {
+            if (t->curr[0] == '\'')
+            {
+                token.kind = Token_Wchar;
+                t->curr++;
+                token.str.start = t->curr;
+                while (t->curr[0] != '\'')
+                    t->curr += t->curr[0] == '\\' ? 2 : 1;
+
+                token.str.len = t->curr - token.str.start;
+            }
+            else if (t->curr[0] == '"')
+            {
+                token.kind = Token_String;
+                t->curr++;
+                token.str.start = t->curr;
+
+                while (t->curr[0] && t->curr[0] != '"')
+                {
+                    if (t->curr[0] == '\\' && t->curr[1])
+                        t->curr++;
+                    t->curr++;
+                }
+
+                token.str.len = t->curr - token.str.start;
+                if (t->curr[0] == '"')
+                    t->curr++;
+            }
+        }
     }
     else if (gb_char_is_digit(c))
     {
@@ -176,7 +207,7 @@ Token get_token(Tokenizer *t)
         case '~':  token.kind = Token_BitNot;       break;
         case '?':  token.kind = Token_Question;     break;
         case '@':  token.kind = Token_At;           break;
-        
+
         case '#':  {
             if (t->curr[0] == '#')
             {
@@ -195,7 +226,7 @@ Token get_token(Tokenizer *t)
                 token.kind = Token_Hash;
             } break;
         }
-            
+
         case '.':
             if (gb_char_is_digit(t->curr[0]))
             {
@@ -348,28 +379,7 @@ Token get_token(Tokenizer *t)
                 t->curr += 2;
         } break;
 
-        default: {
-            if (gb_char_is_alpha(c) || c == '_' || t->curr[0] == '$')
-            {
-                if (c == 'L' && t->curr[1] == '\'')
-                {
-                    token.kind = Token_Wchar;
-                    while (t->curr[0] != '\'')
-                        t->curr += t->curr[0] == '\\' ? 2 : 1;
-                        
-                    token.str.len = t->curr - token.str.start;
-                }
-                else
-                {
-                    token.kind = Token_Ident;
-
-                    while (gb_char_is_alphanumeric(t->curr[0]) || t->curr[0] == '_' || t->curr[0] == '$')
-                        t->curr++;
-                        
-                    token.str.len = t->curr - token.str.start;
-                }
-            }
-        } break;
+        default: break;
         }
     }
 
@@ -381,21 +391,56 @@ Token get_token(Tokenizer *t)
     return token;
 }
 
+void print_token_run(Token_Run run)
+{
+    for (Token *t = run.start; t <= run.end; t++)
+        gb_printf("%.*s ", LIT(t->str));
+    gb_printf("\n");
+}
+
 String token_run_string(Token_Run run)
 {
     if (!run.start || run.start > run.end) return (String){0};
-    
+
 	String start = run.start->str;
 	String end = run.end->str;
 	return (String){start.start, (end.start+end.len)-start.start};
 }
 
-Token_Run make_token_run(char *str, TokenKind kind)
+String token_run_string_alloc(Token_Run run)
+{
+    if (!run.start) return (String){0};
+    int len = 0;
+    for (Token *t = run.start; t <= run.end; t++)
+        len += t->str.len + 1;
+    String ret = {0};
+    ret.start = gb_alloc(gb_heap_allocator(), len);
+    ret.len = len-1;
+
+    char *curr = ret.start;
+    for (Token *t = run.start; t <= run.end; t++)
+    {
+        gb_strncpy(curr, t->str.start, t->str.len);
+        curr[t->str.len] = ' ';
+        curr += t->str.len+1;
+    }
+    return ret;
+}
+
+
+Token *make_token(char *str, TokenKind kind)
 {
     Token *token = gb_alloc_item(gb_heap_allocator(), Token);
     token->kind = kind;
-    token->str.start = str;
+    token->str.start = gb_alloc_str(gb_heap_allocator(), str);
     token->str.len = gb_strlen(str);
+
+    return token;
+}
+
+Token_Run make_token_run(char *str, TokenKind kind)
+{
+    Token *token = make_token(str, kind);
     return (Token_Run){token, token, token};
 }
 

@@ -4,11 +4,12 @@
 #include "gb/gb.h"
 #include "strings.h"
 #include "ast.h"
+#include "symbol.h"
 
 typedef struct Package
 {
     String name;
-    String lib_name;
+    gbArray(Lib) libs;
 
     gbArray(Ast_File) files;
 } Package;

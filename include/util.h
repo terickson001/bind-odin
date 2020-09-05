@@ -6,6 +6,7 @@
 #include "hashmap.h"
 #include "config.h"
 #include "strings.h"
+#include "symbol.h"
 
 #include "gb/gb.h"
 
@@ -47,6 +48,13 @@ char *repeat_char(char c, int count, gbAllocator allocator);
 
 b32 is_valid_ident(String ident);
 
-gbArray(String) get_system_includes(gbAllocator a);
+typedef struct System_Directories
+{
+    gbArray(String) include;
+    gbArray(String) lib;
+} System_Directories;
+
+System_Directories get_system_includes(gbAllocator a);
+gbArray(Lib) get_library_info(System_Directories system_dirs, gbArray(String) libraries);
 
 #endif /* ifndef _C_BIND_UTIL_H */

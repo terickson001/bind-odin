@@ -16,7 +16,8 @@ lib/find_vs.lib
 !include/
 !include/**
 
-!example.bind
+!example_configs/
+!example_configs/**
 
 !README.md
 

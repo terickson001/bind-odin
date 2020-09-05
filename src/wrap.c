@@ -8,12 +8,14 @@ Wrapper make_wrapper(Resolver resolver, WrapConfig *conf)
 {
      Wrapper w = {0};
      w.allocator = resolver.allocator;
-     
+
      w.bind_rename_map = resolver.rename_map;
      w.rename_map = hashmap_new(w.allocator);
      init_rename_map(w.rename_map, w.allocator);
      w.conf = conf;
      w.package = resolver.package;
+
+     return w;
 }
 
 b32 vars_contain_cstring(Node *vars)
@@ -24,7 +26,7 @@ b32 vars_contain_cstring(Node *vars)
          TypeInfo ti = get_type_info(list[i]->VarDecl.type);
          if (ti.stars == 0 && !ti.is_array)
              continue;
-         
+
          String str = integer_type_str(list[i]->VarDecl.type);
          if (cstring_cmp(str, "u8") == 0)
              return true;
@@ -38,7 +40,7 @@ void wrap_record(Wrapper w, Node *node)
      String renamed = rename_ident(name, RENAME_TYPE, true, w.rename_map, (BindConfig*)w.conf, w.allocator);
      String *bind_name;
      hashmap_get(w.bind_rename_map, name, (void **)&bind_name);
-     
+
      if (!vars_contain_cstring(node->StructType.fields))
          gb_fprintf(w.out_file, "%.*s :: bind.%.*s;\n\n",
      LIT(renamed), LIT(*bind_name));
@@ -49,12 +51,12 @@ void wrap_record(Wrapper w, Node *node)
 
 void wrap_tpdef(Wrapper w, Node *tpdef)
 {
-     
+
 }
 
 void wrap_params(Wrapper w, Node *params)
 {
-     
+
 }
 
 void wrap_proc(Wrapper w, Node *node)
@@ -63,12 +65,12 @@ void wrap_proc(Wrapper w, Node *node)
      String renamed = rename_ident(name, RENAME_PROC, true, w.rename_map, (BindConfig*)w.conf, w.allocator);
      String *bind_name;
      hashmap_get(w.bind_rename_map, name, (void **)&bind_name);
-     
+
      gb_fprintf(w.out_file, "%.*s :: proc(", LIT(renamed));
      if (node->FunctionDecl.type->FunctionType.params)
          wrap_params(w, node->FunctionDecl.type->FunctionType.params);
      gb_fprintf(w.out_file, ")");
-     
+
      TypeInfo info = get_type_info(node->FunctionDecl.type->FunctionType.ret_type);
      b32 returns_void = info.stars == 0 && !info.is_array
          && info.base_type->kind == NodeKind_Ident && cstring_cmp(info.base_type->Ident.token.str, "void") == 0;
@@ -77,7 +79,7 @@ void wrap_proc(Wrapper w, Node *node)
          gb_fprintf(w.out_file, " -> ");
          print_type(*w.printer, node->FunctionDecl.type->FunctionType.ret_type, 0);
      }
-     
+
      gb_fprintf(w.out_file, "\n{\n}\n");
 }
 
@@ -85,7 +87,7 @@ void wrap_node(Wrapper w, Node *node)
 {
      if (node->no_print)
          return;
-     
+
      switch (node->kind)
          {
          case NodeKind_StructType:
@@ -126,10 +128,10 @@ void wrap_package(Wrapper w)
          {
          w.curr_file = w.package.files[i];
          w.out_file = gb_alloc_item(w.allocator, gbFile);
-         
+
          create_path_to_file(w.curr_file.filename);
          gb_file_create(w.out_file, w.curr_file.filename);
-         
+
          wrap_file(w);
      }
 }

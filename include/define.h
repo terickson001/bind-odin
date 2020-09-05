@@ -9,10 +9,10 @@ typedef struct Define
 {
     b32 in_use;
     String key;
-    
+
     Token_Run value;
     gbArray(Token_Run) params;
-    
+
     String file;
     isize line;
 } Define;
@@ -24,6 +24,6 @@ void add_fake_define(Define_Map **defines, String name);
 void remove_define(Define_Map **defines, String name);
 Define *get_define(Define_Map *defines, String name);
 void init_std_defines(Define_Map **defines);
-gbArray(Define) get_define_list(Define_Map *defines, String whitelist_dir, gbAllocator alloc);
+gbArray(Define) get_define_list(Define_Map *defines, String whitelist_dir, b32 shallow, gbAllocator alloc);
 
 #endif /* ifndef C_PREPROCESSOR_DEFINE_H */

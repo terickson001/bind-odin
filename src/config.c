@@ -5,9 +5,9 @@ typedef struct Reader
     char *data;
     char *file;
     isize line, col;
-    
+
     Config *conf;
-    
+
     gbAllocator alloc;
 } Reader;
 
@@ -80,14 +80,14 @@ void consume_whitespace(Reader *r, b32 consume_newlines)
             case '\n':
             case '\r':
             if (!consume_newlines) break;
-            
+
             case ' ':
             case '\t':
             case '\f':
             case '\v':
             reader_advance(r);
             continue;
-            
+
             case '#': // comment
             skip_comment(r);
             continue;
@@ -113,9 +113,9 @@ String read_line(Reader *r)
     ret.start = r->data;
     skip_to_eol(r);
     ret.len = r->data - ret.start;
-    
+
     consume_whitespace(r, true);
-    
+
     return ret;
 }
 
@@ -130,13 +130,13 @@ String read_ident(Reader *r)
         reader_error(r, "'%c' is not a valid identifier character", r->data[0]);
         gb_exit(1);
     }
-    
+
     while (gb_char_is_alphanumeric(r->data[0]) || r->data[0] == '-' || r->data[0] == '_')
         reader_advance(r);
-    
+
     ret.len = r->data - ret.start;
     consume_whitespace(r, false);
-    
+
     return ret;
 }
 
@@ -166,34 +166,34 @@ b32 read_bool(Reader *r)
 String read_string(Reader *r)
 {
     require_c(r, '"', "start of string");
-    
+
     String ret;
     ret.start = r->data;
-    
+
     while (r->data[0] != '"')
     {
         if (r->data[0] == '\\')
             reader_advance(r);
         reader_advance(r);
     }
-    
+
     ret.len = r->data - ret.start;
     require_c(r, '"', "end of string");
     consume_whitespace(r, false);
-    
+
     return ret;
 }
 
 String read_path(Reader *r)
 {
     String ret;
-    
+
     if (r->data[0] == '"')
     {
         ret = read_string(r);
         return ret;
     }
-    
+
     ret.start = r->data;
     while (!gb_char_is_space(r->data[0]) && r->data[0] != ':' && r->data[0] != ']' && r->data[0] !='}')
     {
@@ -201,10 +201,10 @@ String read_path(Reader *r)
             reader_advance(r);
         reader_advance(r);
     }
-    
+
     ret.len = r->data - ret.start;
     consume_whitespace(r, false);
-    
+
     return ret;
 }
 
@@ -212,14 +212,14 @@ void read_list(Reader *r, gbArray(String) *list)
 {
     require_c(r, '[', "start of list");
     consume_whitespace(r, true);
-    
+
     if (!*list) gb_array_init(*list, r->alloc);
     while (r->data[0] != ']')
     {
         gb_array_append(*list, read_path(r));
         consume_whitespace(r, true);
     }
-    
+
     require_c(r, ']', "end of list");
 }
 
@@ -243,11 +243,11 @@ void *read_map_value(Reader *r)
 void read_map(Reader *r, map_t *map)
 {
     require_c(r, '{', "start of map");
-    
+
     consume_whitespace(r, true);
-    
+
     if (!*map) *map = hashmap_new(r->alloc);
-    
+
     while (r->data[0] != '}')
     {
         String key = read_path(r);
@@ -258,7 +258,7 @@ void read_map(Reader *r, map_t *map)
         hashmap_put(*map, key, value);
         consume_whitespace(r, true);
     }
-    
+
     require_c(r, '}', "end of map");
 }
 
@@ -269,7 +269,7 @@ void read_general_config(Reader *r)
         String label = read_ident(r);
         if (!expect_eq(r))
             reader_error(r, "Expected '=' after label, got '%c'\n", r->data[0]);
-        
+
         if (cstring_cmp(label, "directory") == 0)
             r->conf->directory = read_path(r);
         else if (cstring_cmp(label, "files") == 0)
@@ -291,7 +291,7 @@ void read_pp_config(Reader *r)
         String label = read_ident(r);
         if (!expect_eq(r))
             reader_error(r, "Expected '=' after label, got '%c'\n", r->data[0]);
-        
+
         if (cstring_cmp(label, "include-dirs") == 0)
             read_list(r, &r->conf->pp_conf.include_dirs);
         else if (cstring_cmp(label, "symbols") == 0)
@@ -312,7 +312,7 @@ void read_pp_config(Reader *r)
 Case read_case(Reader *r)
 {
     String name = read_ident(r);
-    
+
     if (cstring_cmp(name, "Ada_Case") == 0)
         return Case_ADA;
     else if (cstring_cmp(name, "snake_case") == 0)
@@ -329,7 +329,7 @@ Case read_case(Reader *r)
 BindOrdering read_ordering(Reader *r)
 {
     String name = read_ident(r);
-    
+
     if (cstring_cmp(name, "SORTED") == 0)
         return Ordering_Sorted;
     else if (cstring_cmp(name, "SOURCE") == 0)
@@ -346,11 +346,11 @@ void read_bind_config(Reader *r)
         String label = read_ident(r);
         if (!expect_eq(r))
             reader_error(r, "Expected '=' after label, got '%c'\n", r->data[0]);
-        
+
         if (cstring_cmp(label, "package") == 0)
             r->conf->bind_conf.package_name = read_ident(r);
-        else if (cstring_cmp(label, "lib") == 0)
-            r->conf->bind_conf.lib_name = read_ident(r);
+        else if (cstring_cmp(label, "libraries") == 0)
+            read_list(r, &r->conf->bind_conf.libraries);
         else if (cstring_cmp(label, "prefix") == 0)
             r->conf->bind_conf.type_prefix = r->conf->bind_conf.var_prefix
             = r->conf->bind_conf.proc_prefix = r->conf->bind_conf.const_prefix = read_path(r);
@@ -378,6 +378,8 @@ void read_bind_config(Reader *r)
             read_list(r, &r->conf->bind_conf.custom_ordering);
         else if (cstring_cmp(label, "custom-types") == 0)
             read_map(r, &r->conf->bind_conf.custom_types);
+        else if (cstring_cmp(label, "shallow-bind") == 0)
+            r->conf->bind_conf.shallow_bind = read_bool(r);
         else
             reader_error(r, "Invalid label \"%.*s\" in ::/bind\n", LIT(label));
         consume_whitespace(r, true);
@@ -391,7 +393,7 @@ void read_wrap_config(Reader *r)
         String label = read_ident(r);
         if (!expect_eq(r))
             reader_error(r, "Expected '=' after label, got '%c'\n", r->data[0]);
-        
+
         if (cstring_cmp(label, "package") == 0)
             r->conf->wrap_conf.package_name = read_ident(r);
         else if (cstring_cmp(label, "bind-package") == 0)
@@ -431,7 +433,7 @@ void read_config(Reader *r)
             gb_printf("Expected section header, got \"%.*s\"\n", LIT(read_line(r)));
             gb_exit(1);
         }
-        
+
         String header = read_header(r);
         if (cstring_cmp(header, "general") == 0)
             read_general_config(r);
@@ -454,16 +456,16 @@ Config *load_config(char *file, gbAllocator a)
         gb_printf_err("Could not load config file \"%s\"\n", file);
         gb_exit(1);
     }
-    
+
     Reader reader = {0};
     reader.data = fc.data;
     reader.file = file;
     reader.line = 1;
     reader.alloc = a;
     reader.conf = gb_alloc_item(a, Config);
-    
+
     read_config(&reader);
-    
+
     return reader.conf;
 }
 
@@ -475,14 +477,14 @@ void update_config(Config *conf, char *file, gbAllocator a)
         gb_printf_err("Could not load config file \"%s\"\n", file);
         gb_exit(1);
     }
-    
+
     Reader reader = {0};
     reader.data = fc.data;
     reader.file = file;
     reader.line = 1;
     reader.alloc = a;
     reader.conf = conf;
-    
+
     read_config(&reader);
 }
 
@@ -546,7 +548,7 @@ void print_config(Config *conf)
     if (conf->out_file.len)      gb_printf("output-file = \"%.*s\"\n", LIT(conf->out_file));
     if (conf->directory.len)     gb_printf("directory = \"%.*s\"\n", LIT(conf->directory));
     if (conf->out_directory.len) gb_printf("output-directory = \"%.*s\"\n", LIT(conf->out_directory));
-    
+
     PreprocessorConfig pp = conf->pp_conf;
     gb_printf("\n::/preprocess\n");
     if (pp.include_dirs)
@@ -568,25 +570,30 @@ void print_config(Config *conf)
         print_map(pp.pre_includes, print_list_entry);
         gb_printf("\n");
     }
-    
+
     BindConfig bind = conf->bind_conf;
     gb_printf("\n::/bind\n");
     if (bind.package_name.start) gb_printf("package = \"%.*s\"\n", LIT(bind.package_name));
-    if (bind.lib_name.start)     gb_printf("lib = \"%.*s\"\n", LIT(bind.lib_name));
-    
+    if (bind.libraries)
+    {
+        gb_printf("libraries = ");
+        print_list(bind.libraries);
+        gb_printf("\n");
+    }
+
     if (bind.type_prefix.start)  gb_printf("type-prefix  = \"%.*s\"\n", LIT(bind.type_prefix));
     if (bind.var_prefix.start)   gb_printf("var-prefix   = \"%.*s\"\n", LIT(bind.var_prefix));
     if (bind.proc_prefix.start)  gb_printf("proc-prefix  = \"%.*s\"\n", LIT(bind.proc_prefix));
     if (bind.const_prefix.start) gb_printf("const-prefix = \"%.*s\"\n", LIT(bind.const_prefix));
-    
+
     if (bind.type_case)   gb_printf("type-case  = %s\n", get_case_string(bind.type_case));
     if (bind.var_case)    gb_printf("var-case   = %s\n", get_case_string(bind.var_case));
     if (bind.proc_case)   gb_printf("proc-case  = %s\n", get_case_string(bind.proc_case));
     if (bind.const_case)  gb_printf("const-case = %s\n", get_case_string(bind.const_case));
-    
+
     gb_printf("use-cstring = %s\n", bind.use_cstring?"true":"false");
     if (bind.ordering) gb_printf("ordering = %s\n", bind.ordering == Ordering_Sorted ? "SORTED" : "SOURCE");
-    
+
     if (bind.custom_ordering)
     {
         gb_printf("custom-ordering = ");
