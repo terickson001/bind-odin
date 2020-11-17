@@ -8,6 +8,17 @@
 
 void pp_pop_context(Preprocessor *pp);
 
+int check_end_of_context(Preprocessor *pp)
+{
+    int popped = 0;
+    if (&peek(pp) > pp->context->tokens.end && pp->context->next)
+    {
+        popped = pp->context->in_include?1:2;
+        pp_pop_context(pp);
+    }
+    return popped;
+}
+
 int pp_advance_n(Preprocessor *pp, int n)
 {
     int popped = 0;
@@ -25,18 +36,10 @@ int pp_advance_n(Preprocessor *pp, int n)
                 break;
 
             pp->context->tokens.curr++;
-            if (&peek(pp) > pp->context->tokens.end && pp->context->next)
-            {
-                popped = pp->context->in_include?1:2;
-                pp_pop_context(pp);
-            }
+            popped = check_end_of_context(pp);
         }
 
-        if (&peek(pp) > pp->context->tokens.end && pp->context->next)
-        {
-            popped = pp->context->in_include ? 1 : 2;
-            pp_pop_context(pp);
-        }
+        popped = check_end_of_context(pp);
     }
 
     return popped;
@@ -82,8 +85,8 @@ void pp_pop_context(Preprocessor *pp)
     PP_Context *old = pp->context;
     pp->context = old->next;
 
-    if (old->in_macro)
-        defines_destroy(old->local_defines);
+//     if (old->local_defines)
+//         defines_destroy(old->local_defines);
 
     pp->end_of_prev = old->tokens.end;
     pp->paste_next = false;
@@ -462,8 +465,6 @@ Define pp_get_define(Preprocessor *pp, String name)
     if (temp_define.in_use)
         define = &temp_define;
 
-    if (!define && pp->context && pp->context->local_defines)
-        define = get_define(pp->context->local_defines, name);
     if (!define)
         define = get_define(pp->defines, name);
     if (define)
@@ -472,13 +473,52 @@ Define pp_get_define(Preprocessor *pp, String name)
         return (Define){0};
 }
 
+/* @todo(Tyler): rework function-like macro expansion
+ *    1. Get arguments
+ *    2. Expand arguments
+ *    3. Replace parameters
+ *    4. Push context
+ *
+ * Motivations:
+ *    - Self contained to `pp_do_macro`
+ *    - No `local_defines`
+ *    - No edge-cases when reading a macro invation pops the context
+*/
+
+int _is_param(Token t, Define define)
+{
+    for (int i = 0; i < gb_array_count(define.params); i++)
+        if (string_cmp(t.str, define.params[i].str) == 0) return i;
+    return -1;
+}
+
+Token_Run pp_replace_params(Preprocessor *pp, Define define, gbArray(Token_Run) args)
+{
+    gbArray(Token) out;
+    gb_array_init(out, pp->allocator);
+    for (Token *t = define.value.start; t <= define.value.end; t++)
+    {
+        int idx = -1;
+        if ((idx = _is_param(*t, define)) < 0)
+        {
+            gb_array_append(out, *t);
+            continue;
+        }
+
+        gb_array_appendv(out, args[idx].start, (args[idx].end-args[idx].start) + 1)
+    }
+
+    Token_Run run = {out, out, out+gb_array_count(out)-1}
+    return run;
+}
+
 void pp_do_macro(Preprocessor *pp, Define define, Token name, Token *preceding_token)
 {
     String invocation = name.str;
     b32 has_va_args = false;
     Token_Run va_args = {0};
 
-
+    // Get Arguments
     gbArray(Token_Run) args = 0;
     if (define.params)
     {
@@ -542,7 +582,6 @@ void pp_do_macro(Preprocessor *pp, Define define, Token name, Token *preceding_t
     new_context.in_macro = true;
     new_context.in_include = pp->context->in_include;
     new_context.macro = define;
-    new_context.macro_invocation = invocation;
     new_context.filename = pp->context->filename;
     new_context.from_line = from_line;
     new_context.from_column = from_column;
@@ -555,24 +594,17 @@ void pp_do_macro(Preprocessor *pp, Define define, Token name, Token *preceding_t
     }
 
 
-    Define_Map *local_defines;
-    local_defines = gb_alloc_item(pp->allocator, Define_Map);
-    defines_init(local_defines, pp->allocator);
-
     if (define.params)
     {
         for (int i = 0; i < gb_array_count(define.params); i++)
         {
             Token_Run processed_run = args[i];
-            if (pp->context->in_macro && args[i].start)
-            {
-                gbArray(Token) tokens = run_pp_sandboxed(pp, &args[i]);
-                processed_run = (Token_Run){tokens, tokens, tokens+gb_array_count(tokens)-1};
-                if (processed_run.end < processed_run.start)
-                    processed_run = (Token_Run){0};
-            }
+            gbArray(Token) tokens = run_pp_sandboxed(pp, &args[i]);
+            processed_run = (Token_Run){tokens, tokens, tokens+gb_array_count(tokens)-1};
+            if (processed_run.end < processed_run.start)
+                processed_run = (Token_Run){0};
 
-            add_define(&local_defines, token_run_string(define.params[i]), processed_run, 0, pp->line, pp->context->filename);
+            // add_define(&local_defines, token_run_string(define.params[i]), processed_run, 0, pp->line, pp->context->filename);
         }
     }
 
@@ -587,11 +619,11 @@ void pp_do_macro(Preprocessor *pp, Define define, Token name, Token *preceding_t
         gbArray(Token_Run) va_opt_params;
         gb_array_init(va_opt_params, pp->allocator);
         gb_array_append(va_opt_params, make_token_run("x", Token_Ident));
-        add_define(&local_defines, make_string("__VA_OPT__"), va_opt_value, va_opt_params, pp->line, pp->context->filename);
+        // add_define(&local_defines, make_string("__VA_OPT__"), va_opt_value, va_opt_params, pp->line, pp->context->filename);
     }
 
-    add_fake_define(&local_defines, define.key);
-    new_context.local_defines = local_defines;
+    // add_fake_define(&local_defines, define.key);
+    // new_context.local_defines = local_defines;
 
     pp_push_context(pp, define.value, new_context, 0);
 }

@@ -26,14 +26,13 @@ typedef struct PP_Context
     isize line;   // starts at 1
     isize column; // starts at 0
     String filename;
-    
+
     b32 in_macro;
     Define macro;
-    String macro_invocation;
     Token *preceding_token;
 
     b32 no_paste;
-    
+
     b32 in_include;
 
     String from_filename;
@@ -44,17 +43,17 @@ typedef struct PP_Context
 
     b32 in_sandbox;
 
-    Define_Map *local_defines;
+    // Define_Map *local_defines;
 } PP_Context;
 
 typedef struct Preprocessor
 {
     gbAllocator allocator;
     PreprocessorConfig *conf;
-    
+
     gbArray(char *) file_contents;
     gbArray(Token *) file_tokens;
-    
+
     PP_Context *context;
 
     Token *end_of_prev;
@@ -65,20 +64,19 @@ typedef struct Preprocessor
 
     isize write_line;
     isize write_column;
-    
+
     Cond_Stack *conditionals;
-    
+
     Define_Map *defines;
-    
+
     gbArray(String) system_includes;
 
     gbArray(Token) output;
 
     b32 stringify_next;
     b32 paste_next;
-    
+
     map_t pragma_onces;
-    // String whitelist;
 } Preprocessor;
 
 Preprocessor *make_preprocessor(gbArray(Token) tokens, String root_dir, String filename, PreprocessorConfig *conf);
