@@ -8,14 +8,12 @@ gb_inline void add_symbol(Lib *lib, String string)
 
 b32 read_archive_header(gbFile *file, Coff_Archive_Header *header)
 {
-    gb_printf("TELL: %d", gb_file_tell(file));
     if (!gb_file_read(file, header, 60))
     {
         gb_printf_err("ERROR: Couldn't read COFF archive member header\n");
         return false;
     }
 
-    gb_printf(" -> %d (%.*s)\n", gb_file_tell(file), 16, header->name);
     if (gb_strncmp(header->END, "`\n", 2) != 0)
     {
         gb_printf_err("ERROR: Invalid COFF archive member header\n");

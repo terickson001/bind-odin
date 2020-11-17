@@ -695,7 +695,28 @@ System_Directories get_system_includes(gbAllocator a)
 
 char *find_lib_path(System_Directories system_dirs, String lib)
 {
+
+    b32 found_sep = false;
+    for (int i = 0; i < lib.len; i++)
+    {
+        if (lib.start[i] == '/' || lib.start[i] == '\\')
+        {
+            found_sep = true;
+            break;
+        }
+    }
+
     char path[512];
+    if (found_sep)
+    {
+        gb_snprintf(path, 512, "%.*s", LIT(lib));
+        if (gb_file_exists(path))
+            return gb_alloc_str(gb_heap_allocator(), path);
+
+        gb_printf_err("ERROR: Could not find local library \"%s\"\n", path);
+        return 0;
+    }
+
     for (int i = 0; i < gb_array_count(system_dirs.lib); i++)
     {
         gb_snprintf(path, 512, "%.*s%c%.*s", LIT(system_dirs.lib[i]), GB_PATH_SEPARATOR, LIT(lib));
@@ -707,6 +728,8 @@ char *find_lib_path(System_Directories system_dirs, String lib)
 
 gbArray(Lib) get_library_info(System_Directories system_dirs, gbArray(String) libraries)
 {
+    if (!libraries) return 0;
+    
     gbArray(Lib) libs;
     gb_array_init(libs, gb_heap_allocator());
     for (int i = 0; i < gb_array_count(libraries); i++)

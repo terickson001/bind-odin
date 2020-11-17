@@ -143,11 +143,13 @@ Config *init_options(int argc, char **argv, gbArray(Bind_Task) *out_tasks)
             conf->bind_conf.package_name = make_string(argv[i+1]);
             i++;
         }
-//         else if ((gb_strcmp(argv[i], "-l") == 0 || gb_strcmp(argv[i], "--link") == 0) && i+1 < argc)
-//         {
+        else if ((gb_strcmp(argv[i], "-l") == 0 || gb_strcmp(argv[i], "--link") == 0) && i+1 < argc)
+        {
+            if (!conf->bind_conf.libraries) gb_array_init(conf->bind_conf.libraries, a);
+            gb_array_append(conf->bind_conf.libraries, make_string(argv[i+1]));
 //             conf->bind_conf.lib_name = make_string(argv[i+1]);
-//             i++;
-//         }
+            i++;
+        }
         else if ((gb_strcmp(argv[i], "-w") == 0 || gb_strcmp(argv[i], "--whitelist") == 0) && i+1 < argc)
         {
             conf->pp_conf.whitelist = make_string(argv[i+1]);

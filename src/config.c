@@ -380,6 +380,8 @@ void read_bind_config(Reader *r)
             read_map(r, &r->conf->bind_conf.custom_types);
         else if (cstring_cmp(label, "shallow-bind") == 0)
             r->conf->bind_conf.shallow_bind = read_bool(r);
+        else if (cstring_cmp(label, "whitelist") == 0)
+            r->conf->bind_conf.whitelist = read_path(r);
         else
             reader_error(r, "Invalid label \"%.*s\" in ::/bind\n", LIT(label));
         consume_whitespace(r, true);

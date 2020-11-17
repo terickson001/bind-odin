@@ -849,10 +849,12 @@ void print_define(Printer p, Node *def)
     gb_fprintf(p.out_file, ";\n");
 }
 
-b32 _node_in_file(Printer p, Node *node)
+b32 _node_in_whitelist(Printer p, Node *node)
 {
-    gb_printf("%.*s == %s?\n", LIT(node_token(node)->loc.file), p.file.filename);
-    return cstring_cmp(node_token(node)->loc.file, p.file.filename) == 0;
+    // gb_printf("%.*s == %s?\n", LIT(node_token(node)->loc.file), p.file.filename);
+
+    return has_substring(make_string(p.file.filename), p.conf->whitelist)
+        || cstring_cmp(node_token(node)->loc.file, p.file.filename) == 0;
 }
 
 void print_lib_variables(Printer p, Lib lib)
@@ -861,7 +863,7 @@ void print_lib_variables(Printer p, Lib lib)
     b32 found = false;
     for (int i = 0; i < gb_array_count(p.file.variables); i++)
     {
-        if (p.conf->shallow_bind && !_node_in_file(p, p.file.variables[i])) continue;
+        if (p.conf->shallow_bind && !_node_in_whitelist(p, p.file.variables[i])) continue;
         if (!hashmap_exists(lib.symbols, p.file.variables[i]->VarDecl.name->Ident.token.str)) continue;
 
         found = true;
@@ -877,8 +879,35 @@ void print_lib_variables(Printer p, Lib lib)
     gb_fprintf(p.out_file, "foreign %.*s {\n", LIT(lib.name));
     for (int i = 0; i < gb_array_count(p.file.variables); i++)
     {
-        if (p.conf->shallow_bind && !_node_in_file(p, p.file.variables[i])) continue;
+        if (p.conf->shallow_bind && !_node_in_whitelist(p, p.file.variables[i])) continue;
         if (!hashmap_exists(lib.symbols, p.file.variables[i]->VarDecl.name->Ident.token.str)) continue;
+        print_node(p, p.file.variables[i], 1, true, true);
+    }
+    gb_fprintf(p.out_file, "}\n\n");
+}
+
+void print_all_variables(Printer p)
+{
+    String rename_temp;
+    b32 found = false;
+    for (int i = 0; i < gb_array_count(p.file.variables); i++)
+    {
+        if (p.conf->shallow_bind && !_node_in_whitelist(p, p.file.variables[i])) continue;
+
+        found = true;
+        if (p.conf->var_case || (p.conf->var_prefix.len && !has_prefix(p.file.variables[i]->VarDecl.name->Ident.token.str, p.conf->var_prefix)))
+            p.var_link_padding = gb_max(p.var_link_padding, p.file.variables[i]->VarDecl.name->Ident.token.str.len);
+        rename_temp = rename_ident(p.file.variables[i]->VarDecl.name->Ident.token.str, RENAME_VAR, true, p.rename_map, p.conf, p.allocator);
+        p.var_name_padding = gb_max(p.var_name_padding, rename_temp.len);
+    }
+    if (!found) return;
+
+    if (p.conf->var_prefix.start && !p.conf->var_case)
+        gb_fprintf(p.out_file, "@(link_prefix=\"%.*s\")\n", LIT(p.conf->var_prefix));
+    gb_fprintf(p.out_file, "foreign {\n");
+    for (int i = 0; i < gb_array_count(p.file.variables); i++)
+    {
+        if (p.conf->shallow_bind && !_node_in_whitelist(p, p.file.variables[i])) continue;
         print_node(p, p.file.variables[i], 1, true, true);
     }
     gb_fprintf(p.out_file, "}\n\n");
@@ -890,7 +919,7 @@ void print_lib_procs(Printer p, Lib lib)
     b32 found = false;
     for (int i = 0; i < gb_array_count(p.file.functions); i++)
     {
-        if (p.conf->shallow_bind && !_node_in_file(p, p.file.functions[i])) continue;
+        if (p.conf->shallow_bind && !_node_in_whitelist(p, p.file.functions[i])) continue;
         if (!hashmap_exists(lib.symbols, p.file.functions[i]->FunctionDecl.name->Ident.token.str)) continue;
         found = true;
 
@@ -910,8 +939,39 @@ void print_lib_procs(Printer p, Lib lib)
 
     for (int i = 0; i < gb_array_count(p.file.functions); i++)
     {
-        if (p.conf->shallow_bind && _node_in_file(p, p.file.functions[i])) continue;
+        if (p.conf->shallow_bind && _node_in_whitelist(p, p.file.functions[i])) continue;
         if (!hashmap_exists(lib.symbols, p.file.functions[i]->FunctionDecl.name->Ident.token.str)) continue;
+        print_node(p, p.file.functions[i], 1, true, true);
+    }
+    gb_fprintf(p.out_file, "}\n\n");
+}
+
+void print_all_procs(Printer p)
+{
+    String rename_temp;
+    b32 found = false;
+    for (int i = 0; i < gb_array_count(p.file.functions); i++)
+    {
+        if (p.conf->shallow_bind && !_node_in_whitelist(p, p.file.functions[i])) continue;
+        found = true;
+
+        rename_temp = rename_ident(p.file.functions[i]->FunctionDecl.name->Ident.token.str, RENAME_VAR, true, p.rename_map, p.conf, p.allocator);
+        p.proc_name_padding = gb_max(p.proc_name_padding, rename_temp.len);
+
+        if (p.conf->proc_case || (p.conf->proc_prefix.len && !has_prefix(p.file.functions[i]->FunctionDecl.name->Ident.token.str, p.conf->proc_prefix)))
+            p.proc_link_padding = gb_max(p.proc_link_padding, p.file.functions[i]->FunctionDecl.name->Ident.token.str.len);
+        else
+            p.proc_name_padding = gb_max(p.proc_name_padding, rename_temp.len + p.proc_link_padding);
+    }
+    if (!found) return;
+
+    if (p.conf->proc_prefix.start && !p.conf->proc_case)
+        gb_fprintf(p.out_file, "@(link_prefix=\"%.*s\")\n", LIT(p.conf->proc_prefix));
+    gb_fprintf(p.out_file, "foreign {\n");
+
+    for (int i = 0; i < gb_array_count(p.file.functions); i++)
+    {
+        if (p.conf->shallow_bind && _node_in_whitelist(p, p.file.functions[i])) continue;
         print_node(p, p.file.functions[i], 1, true, true);
     }
     gb_fprintf(p.out_file, "}\n\n");
@@ -927,12 +987,12 @@ void print_file(Printer p)
     if (p.source_order)
     {
 //         for (int i = 0; i < gb_array_count(p.file.defines); i++)
-//             if (!p.conf->shallow_bind || _node_in_file(p, p.file.defines[i]))
+//             if (!p.conf->shallow_bind || _node_in_whitelist(p, p.file.defines[i]))
 //                 print_define(p, p.file.defines[i]);
 
         gb_fprintf(p.out_file, "\n");
         for (int i = 0; i < gb_array_count(p.file.all_nodes); i++)
-            if (!p.conf->shallow_bind || _node_in_file(p, p.file.all_nodes[i]))
+            if (!p.conf->shallow_bind || _node_in_whitelist(p, p.file.all_nodes[i]))
                 print_node(p, p.file.all_nodes[i], 0, true, true);
     }
     else
@@ -951,17 +1011,17 @@ void print_file(Printer p)
             }
         }
 
-//         if (gb_array_count(p.file.defines) > 0)
-//         {
-//             gb_fprintf(p.out_file, "/* Defines */\n");
-//             for (int i = 0; i < gb_array_count(p.file.defines); i++)
-//             {
-//                 if ((!p.conf->shallow_bind || _node_in_file(p, p.file.defines[i]))
-//                     && !p.file.defines[i]->no_print)
-//                     print_define(p, p.file.defines[i]);
-//             }
-//             gb_fprintf(p.out_file, "\n");
-//         }
+        if (gb_array_count(p.file.defines) > 0)
+        {
+            gb_fprintf(p.out_file, "/* Defines */\n");
+            for (int i = 0; i < gb_array_count(p.file.defines); i++)
+            {
+                if ((!p.conf->shallow_bind || _node_in_whitelist(p, p.file.defines[i]))
+                    && !p.file.defines[i]->no_print)
+                    print_define(p, p.file.defines[i]);
+            }
+            gb_fprintf(p.out_file, "\n");
+        }
 
         int record_count = gb_array_count(p.file.records);
         int tpdef_count  = gb_array_count(p.file.tpdefs);
@@ -971,14 +1031,14 @@ void print_file(Printer p)
         {
             if (ti == tpdef_count || (ri < record_count && p.file.records[ri]->index < p.file.tpdefs[ti]->index))
             {
-                if (!p.conf->shallow_bind || _node_in_file(p, p.file.records[ri]))
+                if (!p.conf->shallow_bind || _node_in_whitelist(p, p.file.records[ri]))
                     print_node(p, p.file.records[ri], 0, true, true);
                 ri++;
             }
             else if (ri == record_count || (ti < tpdef_count && p.file.tpdefs[ti]->index < p.file.records[ri]->index))
             {
                 top_level_type = true;
-                if (!p.conf->shallow_bind || _node_in_file(p, p.file.tpdefs[ti]))
+                if (!p.conf->shallow_bind || _node_in_whitelist(p, p.file.tpdefs[ti]))
                     print_node(p, p.file.tpdefs[ti], 0, true, true);
                 ti++;
                 top_level_type = false;
@@ -988,15 +1048,25 @@ void print_file(Printer p)
         if (gb_array_count(p.file.variables) > 0)
         {
             gb_fprintf(p.out_file, "/* Variables */\n");
-            for (int i = 0; i < gb_array_count(p.package.libs); i++)
-                print_lib_variables(p, p.package.libs[i]);
+            if (!p.package.libs)
+                print_all_variables(p);
+            else
+            {
+                for (int i = 0; i < gb_array_count(p.package.libs); i++)
+                    print_lib_variables(p, p.package.libs[i]);
+            }
         }
 
         if (gb_array_count(p.file.functions) > 0)
         {
             gb_fprintf(p.out_file, "/* Procedures */\n");
-            for (int i = 0; i < gb_array_count(p.package.libs); i++)
-                print_lib_procs(p, p.package.libs[i]);
+            if (!p.package.libs)
+                print_all_procs(p);
+            else
+            {
+                for (int i = 0; i < gb_array_count(p.package.libs); i++)
+                    print_lib_procs(p, p.package.libs[i]);
+            }
         }
     }
 }

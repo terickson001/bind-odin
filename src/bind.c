@@ -78,7 +78,7 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
         pp->system_includes = system_dirs.include;
         run_pp(pp);
 
-        // gbArray(Define) defines = pp_dump_defines(pp, task.input_filename);
+        gbArray(Define) defines = pp_dump_defines(pp, task.input_filename);
 
         gb_array_append(pp->output, (Token){.kind=Token_EOF});
         pp_print(pp, "temp.pp");
@@ -89,7 +89,7 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
         parser.start = parser.curr = pp->output;
         parser.end = parser.start + gb_array_count(pp->output)-1;
         parse_file(&parser);
-//         parser.file.raw_defines = defines;
+        parser.file.raw_defines = defines;
 
         parser.file.filename = filename;
         parser.file.output_filename = make_cstring(a, task.output_filename);
@@ -105,12 +105,12 @@ void bind_generate(Config *conf, gbArray(Bind_Task) tasks)
     Parser parser = make_parser();
     parser.type_table = type_table;
     parser.opaque_types = opaque_types;
-//     for (int i = 0; i < gb_array_count(package.files); i++)
-//     {
-//         parser.file = package.files[i];
-//         parse_defines(&parser, package.files[i].raw_defines);
-//         package.files[i].defines = parser.file.defines;
-//     }
+    for (int i = 0; i < gb_array_count(package.files); i++)
+    {
+        parser.file = package.files[i];
+        parse_defines(&parser, package.files[i].raw_defines);
+        package.files[i].defines = parser.file.defines;
+    }
 
     gb_printf("----PREPROCESS/PARSE FINISHED.\n");
     gb_printf("STARTING RESOLVE\n");

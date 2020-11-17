@@ -44,6 +44,7 @@ typedef struct BindConfig
 
      b32 use_cstring;
      b32 shallow_bind;
+     String whitelist;
 
      BindOrdering ordering;
      gbArray(String) custom_ordering;
