@@ -3,6 +3,7 @@
 
 #include "gb/gb.h"
 #include "strings.h"
+#include "hide_set.h"
 
 #define TOKEN_KINDS                             \
 TOKEN_KIND(Token_Invalid, "Invalid"),       \
@@ -168,6 +169,7 @@ typedef struct Token
 {
     TokenKind kind;
     String str;
+    Hide_Set *hide_set;
     File_Location loc;
     File_Location pp_loc;
     File_Location from_loc;
@@ -191,5 +193,5 @@ String token_run_string_alloc(Token_Run run);
 Token *make_token(char *str, TokenKind kind);
 Token_Run make_token_run(char *str, TokenKind kind);
 Token_Run str_make_token_run(String str, TokenKind kind);
-
+Token_Run token_run_merge_hide_set(Token_Run run, Hide_Set *hs);
 #endif /* ifndef C_PARSER_TOKENIZER_H_ */
