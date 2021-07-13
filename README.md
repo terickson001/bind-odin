@@ -1,3 +1,4 @@
+**DEPRECATED, PLEASE USE [bind-odin-port](https://github.com/terickson001/bind-odin-port) INSTEAD**
 # bind-odin
 A bindings generator for [Odin](https://github.com/odin-lang/odin)
 
